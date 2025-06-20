@@ -64,6 +64,10 @@ pub fn path_to_id(path: PathBuf) -> String {
     if path.starts_with("//") {
         return String::from(path);
     }
+    // HACK: Raspberry Pi
+    if path == "camera.libcamera" || path == "vulkan.broadcom" {
+        return String::from(path);
+    }
     path.replace(MAIN_SEPARATOR_STR, "_").replace(".", "_")
 }
 
