@@ -22,6 +22,7 @@ define_ProjectId!(
     (Clspv, clspv),
     (Fwupd, fwupd),
     (LibCLC, libclc),
+    (LibcameraRpi, libcamera_rpi),
     (LlvmProject, llvm_project),
     (MediaDriver, media_driver),
     (Mesa3DDesktopIntel, mesa3d_desktop_intel),
