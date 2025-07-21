@@ -1,0 +1,16 @@
+name: "ninja-to-soong"
+description:
+    "Generate Soong files from Ninja"
+
+third_party {
+homepage: "https://github.com/rjodinchr/ninja-to-soong"
+  identifier {
+    type: "Git"
+    value: "https://github.com/rjodinchr/ninja-to-soong"
+    primary_source: true
+    version: "c9aff3357fa4b05098045b51adda6042ee67ca97"
+  }
+  version: "c9aff3357fa4b05098045b51adda6042ee67ca97"
+  last_upgrade_date { year: 2025 month: 7 day: 15 }
+  license_type: NOTICE
+}

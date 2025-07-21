@@ -1,0 +1,288 @@
+// Copyright 2024 ninja-to-soong authors
+// SPDX-License-Identifier: Apache-2.0;
+
+use crate::context::*;
+use crate::ninja_target::*;
+use crate::project::*;
+use crate::soong_module::*;
+use crate::soong_module_generator::*;
+use crate::utils::*;
+
+#[derive(Default)]
+pub struct SoongPackage {
+    modules: Vec<SoongModule>,
+    internals: SoongModuleGeneratorInternals,
+    raw_suffix: String,
+    ctx: Context,
+}
+
+impl SoongPackage {
+    pub fn new(
+        default_visibility: &[&str],
+        license_module_name: &str,
+        license_kinds: &[&str],
+        license_text: &[&str],
+    ) -> Self {
+        Self::default()
+            .add_module(
+                SoongModule::new("package")
+                    .add_prop(
+                        "default_visibility",
+                        SoongProp::VecStr(
+                            default_visibility
+                                .into_iter()
+                                .map(|visibility| String::from(*visibility))
+                                .collect(),
+                        ),
+                    )
+                    .add_prop(
+                        "default_applicable_licenses",
+                        SoongProp::VecStr(vec![String::from(license_module_name)]),
+                    ),
+            )
+            .add_module(
+                SoongModule::new("license")
+                    .add_prop("name", SoongProp::Str(String::from(license_module_name)))
+                    .add_prop(
+                        "visibility",
+                        SoongProp::VecStr(vec![String::from(":__subpackages__")]),
+                    )
+                    .add_prop(
+                        "license_kinds",
+                        SoongProp::VecStr(
+                            license_kinds
+                                .into_iter()
+                                .map(|kind| String::from(*kind))
+                                .collect(),
+                        ),
+                    )
+                    .add_prop(
+                        "license_text",
+                        SoongProp::VecStr(
+                            license_text
+                                .into_iter()
+                                .map(|text| String::from(*text))
+                                .collect(),
+                        ),
+                    ),
+            )
+    }
+
+    pub fn add_module(mut self, module: SoongModule) -> SoongPackage {
+        self.modules.push(module);
+        self
+    }
+
+    pub fn add_raw_suffix(mut self, suffix: &str) -> SoongPackage {
+        self.raw_suffix = String::from(suffix);
+        self
+    }
+
+    pub fn filter_local_include_dirs(
+        &mut self,
+        prefix: &str,
+        files: &Vec<PathBuf>,
+    ) -> Result<(), String> {
+        let mut set = std::collections::HashSet::new();
+        for file in files {
+            let mut path = file.clone();
+            while let Some(parent) = path.parent() {
+                path = PathBuf::from(parent);
+                set.insert(path.clone());
+            }
+        }
+        for module in &mut self.modules {
+            module.update_prop("local_include_dirs", |prop| match prop {
+                SoongProp::VecStr(dirs) => Ok(SoongProp::VecStr(
+                    dirs.into_iter()
+                        .filter(|dir| {
+                            if let Ok(strip) = Path::new(&dir).strip_prefix(prefix) {
+                                if !set.contains(strip) {
+                                    return false;
+                                }
+                            }
+                            return true;
+                        })
+                        .collect(),
+                )),
+                _ => Ok(prop),
+            })?;
+        }
+        Ok(())
+    }
+
+    fn filter_default(&self, mut module: SoongModule) -> Result<SoongModule, String> {
+        let Some(default_names_prop) = module.get_prop("defaults") else {
+            return Ok(module);
+        };
+        match default_names_prop.get_prop() {
+            SoongProp::VecStr(default_names) => {
+                for default_name in default_names {
+                    let Some(default_module) = self.get_module(&default_name) else {
+                        return Ok(module);
+                    };
+                    module.filter_default(default_module)?;
+                }
+            }
+            _ => return error!("Unexpected property"),
+        }
+        Ok(module)
+    }
+
+    pub fn get_props(
+        &self,
+        module_name: &str,
+        props: Vec<&str>,
+    ) -> Result<Vec<SoongNamedProp>, String> {
+        let Some(module) = self.get_module(module_name) else {
+            return error!("Could not find module {module_name:#?}");
+        };
+        Ok(props
+            .into_iter()
+            .filter_map(|prop| module.get_prop(prop))
+            .collect())
+    }
+
+    fn get_module(&self, name: &str) -> Option<&SoongModule> {
+        for module in &self.modules {
+            let Some(module_name_prop) = module.get_prop("name") else {
+                continue;
+            };
+            match module_name_prop.get_prop() {
+                SoongProp::Str(module_name) => {
+                    if module_name == name {
+                        return Some(module);
+                    }
+                }
+                _ => continue,
+            }
+        }
+        None
+    }
+
+    pub fn pop_module(&mut self, name: &str) -> Option<SoongModule> {
+        for idx in 0..self.modules.len() {
+            let module = &self.modules[idx];
+            let Some(module_name_prop) = module.get_prop("name") else {
+                continue;
+            };
+            match module_name_prop.get_prop() {
+                SoongProp::Str(module_name) => {
+                    if module_name == name {
+                        return Some(self.modules.remove(idx));
+                    }
+                }
+                _ => continue,
+            }
+        }
+        None
+    }
+
+    pub fn get_modules_name(&self) -> Vec<String> {
+        self.modules
+            .iter()
+            .filter_map(|module| {
+                let Some(prop) = module.get_prop("name") else {
+                    return None;
+                };
+                match prop.get_prop() {
+                    SoongProp::Bool(_) => None,
+                    SoongProp::Str(name) => Some(name),
+                    SoongProp::Prop(_) => None,
+                    SoongProp::VecStr(_) => None,
+                    SoongProp::None => None,
+                }
+            })
+            .collect()
+    }
+
+    pub fn print(mut self) -> Result<String, String> {
+        let mut package = String::from(
+            "//
+// This file has been auto-generated by ninja-to-soong
+//
+// ******************************
+// *** DO NOT MODIFY MANUALLY ***
+// ******************************
+//
+// https://github.com/rjodinchr/ninja-to-soong
+//
+",
+        );
+        if !self.ctx.wildcardize_paths {
+            package += "// CI version, no wildcard generated\n";
+            package += "//\n";
+        }
+        for module_index in 0..self.modules.len() {
+            let module = self.modules.remove(module_index);
+            self.modules
+                .insert(module_index, self.filter_default(module)?);
+        }
+        for module in self.modules {
+            package += &module.print();
+        }
+        package += &self.raw_suffix;
+        Ok(package)
+    }
+
+    pub fn get_gen_deps(&mut self) -> Vec<PathBuf> {
+        self.internals.deps.sort_unstable();
+        self.internals.deps.dedup();
+        std::mem::take(&mut self.internals.deps)
+    }
+
+    pub fn get_gen_libs(&mut self) -> Vec<PathBuf> {
+        self.internals.libs.sort_unstable();
+        self.internals.libs.dedup();
+        std::mem::take(&mut self.internals.libs)
+    }
+
+    pub fn generate<T>(
+        mut self,
+        targets_to_gen: NinjaTargetsToGenMap,
+        targets: Vec<T>,
+        src_path: &Path,
+        ndk_path: &Path,
+        build_path: &Path,
+        gen_build_prefix: Option<&str>,
+        project: &dyn Project,
+        ctx: &Context,
+    ) -> Result<SoongPackage, String>
+    where
+        T: NinjaTarget,
+    {
+        self.ctx = ctx.clone();
+        let targets_map = NinjaTargetsMap::new(&targets);
+        let mut gen = SoongModuleGenerator::new(
+            src_path,
+            ndk_path,
+            build_path,
+            gen_build_prefix,
+            &targets_map,
+            &targets_to_gen,
+            project,
+        );
+        targets_map.traverse_from(targets_to_gen.get_targets(), |target| {
+            if !gen.filter_target(target) {
+                return Ok(false);
+            }
+            self.modules.extend(match target.get_rule()? {
+                NinjaRule::Binary => gen.generate_object("cc_binary", target, ctx)?,
+                NinjaRule::SharedLibrary => {
+                    gen.generate_object("cc_library_shared", target, ctx)?
+                }
+                NinjaRule::StaticLibrary => {
+                    gen.generate_object("cc_library_static", target, ctx)?
+                }
+                NinjaRule::CustomCommand(rule_cmd) => {
+                    vec![gen.generate_custom_command(target, rule_cmd)]
+                }
+                NinjaRule::None => return Ok(true),
+            });
+            Ok(true)
+        })?;
+        self.internals = gen.delete();
+
+        Ok(self)
+    }
+}
