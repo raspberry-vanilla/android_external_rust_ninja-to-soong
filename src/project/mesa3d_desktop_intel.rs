@@ -83,40 +83,45 @@ impl Project for Mesa3DDesktopIntel {
         )
         .generate(
             NinjaTargetsToGenMap::from(&[
-                NinjaTargetToGen(
+                target!(
                     "src/mapi/shared-glapi/libglapi.so.0.0.0",
-                    Some("mesa3d_desktop-intel_libglapi"),
-                    Some("libglapi"),
+                    "mesa3d_desktop-intel_libglapi",
+                    "libglapi"
                 ),
-                NinjaTargetToGen(
+                target!(
                     "src/gallium/targets/dri/libgallium_dri.so",
-                    Some("mesa3d_desktop-intel_libgallium_dri"),
-                    Some("libgallium_dri"),
+                    "mesa3d_desktop-intel_libgallium_dri",
+                    "libgallium_dri"
                 ),
-                NinjaTargetToGen(
+                target!(
                     "src/egl/libEGL_mesa.so.1.0.0",
-                    Some("mesa3d_desktop-intel_libEGL_mesa"),
-                    Some("libEGL_mesa"),
+                    "mesa3d_desktop-intel_libEGL_mesa",
+                    "libEGL_mesa"
                 ),
-                NinjaTargetToGen(
+                target!(
                     "src/mapi/es2api/libGLESv2_mesa.so.2.0.0",
-                    Some("mesa3d_desktop-intel_libGLESv2_mesa"),
-                    Some("libGLESv2_mesa"),
+                    "mesa3d_desktop-intel_libGLESv2_mesa",
+                    "libGLESv2_mesa"
                 ),
-                NinjaTargetToGen(
+                target!(
                     "src/mapi/es1api/libGLESv1_CM_mesa.so.1.1.0",
-                    Some("mesa3d_desktop-intel_libGLESv1_CM_mesa"),
-                    Some("libGLESv1_CM_mesa"),
+                    "mesa3d_desktop-intel_libGLESv1_CM_mesa",
+                    "libGLESv1_CM_mesa"
                 ),
-                NinjaTargetToGen(
+                target!(
                     "src/intel/vulkan/libvulkan_intel.so",
-                    Some("mesa3d_desktop-intel_libvulkan_intel"),
-                    Some("vulkan.intel"),
+                    "mesa3d_desktop-intel_libvulkan_intel",
+                    "vulkan.intel"
                 ),
-                NinjaTargetToGen(
+                target!(
                     "src/tool/pps/pps-producer",
-                    Some("mesa3d_desktop-intel_pps-producer"),
-                    Some("pps-producer"),
+                    "mesa3d_desktop-intel_pps-producer",
+                    "pps-producer"
+                ),
+                target!(
+                    "src/tool/pps/libgpudataproducer.so",
+                    "mesa3d_desktop-intel_libgpudataproducer",
+                    "libgpudataproducer"
                 ),
             ]),
             parse_build_ninja::<MesonNinjaTarget>(&build_path)?,
@@ -166,10 +171,10 @@ cc_defaults {{
 }}
 "#,
             ))
-            .print()
+            .print(ctx)
     }
 
-    fn extend_module(&self, target: &Path, module: SoongModule) -> SoongModule {
+    fn extend_module(&self, target: &Path, module: SoongModule) -> Result<SoongModule, String> {
         let relative_install = |module: SoongModule| -> SoongModule {
             for lib in [
                 "libGLESv1_CM_mesa.so.1.1.0",
@@ -223,29 +228,16 @@ cc_defaults {{
             SoongProp::VecStr(libs.into_iter().map(|lib| String::from(lib)).collect()),
         );
 
-        if ![
-            "libintel_decoder_brw.a",
-            "libintel_decoder_elk.a",
-            "libperfetto.a",
-        ]
-        .contains(&file_name(target).as_str())
-        {
-            module.add_prop("defaults", SoongProp::VecStr(vec![String::from(DEFAULTS)]))
+        let module = if target.ends_with("libvulkan_intel.so") {
+            module.add_prop("afdo", SoongProp::Bool(true))
         } else {
-            module.add_prop(
-                "defaults",
-                SoongProp::VecStr(vec![String::from(RAW_DEFAULTS)]),
-            )
-        }
-    }
-    fn extend_cflags(&self, target: &Path) -> Vec<String> {
+            module
+        };
+
         let mut cflags = vec!["-Wno-non-virtual-dtor", "-Wno-error"];
         if target.ends_with("libvulkan_lite_runtime.a") {
             cflags.push("-Wno-unreachable-code-loop-increment");
         }
-        cflags.into_iter().map(|flag| String::from(flag)).collect()
-    }
-    fn extend_shared_libs(&self, target: &Path) -> Vec<String> {
         let mut libs = Vec::new();
         if target.ends_with("libdri.a")
             || target.ends_with("libanv_common.a")
@@ -260,7 +252,22 @@ cc_defaults {{
         if target.starts_with("src/intel/vulkan") || target.ends_with("libvulkan_lite_runtime.a") {
             libs.push("libnativewindow");
         }
-        libs.into_iter().map(|lib| String::from(lib)).collect()
+        if ![
+            "libintel_decoder_brw.a",
+            "libintel_decoder_elk.a",
+            "libperfetto.a",
+        ]
+        .contains(&file_name(target).as_str())
+        {
+            module.add_prop("defaults", SoongProp::VecStr(vec![String::from(DEFAULTS)]))
+        } else {
+            module.add_prop(
+                "defaults",
+                SoongProp::VecStr(vec![String::from(RAW_DEFAULTS)]),
+            )
+        }
+        .extend_prop("cflags", cflags)?
+        .extend_prop("shared_libs", libs)
     }
 
     fn map_lib(&self, library: &Path) -> Option<PathBuf> {

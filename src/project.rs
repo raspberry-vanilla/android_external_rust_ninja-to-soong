@@ -112,14 +112,8 @@ pub trait Project {
         Vec::new()
     }
     // EXTEND FUNCTIONS
-    fn extend_module(&self, _target: &Path, module: SoongModule) -> SoongModule {
-        module
-    }
-    fn extend_cflags(&self, _target: &Path) -> Vec<String> {
-        Vec::new()
-    }
-    fn extend_shared_libs(&self, _target: &Path) -> Vec<String> {
-        Vec::new()
+    fn extend_module(&self, _target: &Path, module: SoongModule) -> Result<SoongModule, String> {
+        Ok(module)
     }
     // MAP FUNCTIONS
     fn map_cmd_output(&self, output: &Path) -> PathBuf {
@@ -127,9 +121,6 @@ pub trait Project {
     }
     fn map_lib(&self, _lib: &Path) -> Option<PathBuf> {
         None
-    }
-    fn map_module_name(&self, _target: &Path, module_name: &str) -> String {
-        String::from(module_name)
     }
     // FILTER FUNCTIONS
     fn filter_cflag(&self, _cflag: &str) -> bool {

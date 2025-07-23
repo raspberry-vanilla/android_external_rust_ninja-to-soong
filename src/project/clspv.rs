@@ -68,7 +68,7 @@ impl Project for Clspv {
         )?;
         self.gen_deps = package.get_gen_deps();
 
-        package.print()
+        package.print(ctx)
     }
 
     fn get_deps_prefix(&self) -> Vec<(PathBuf, Dep)> {
@@ -109,8 +109,10 @@ impl Project for Clspv {
         }
     }
 
-    fn extend_module(&self, _target: &Path, module: SoongModule) -> SoongModule {
+    fn extend_module(&self, _target: &Path, module: SoongModule) -> Result<SoongModule, String> {
         module
+            .add_prop("optimize_for_size", SoongProp::Bool(true))
+            .add_prop("vendor_available", SoongProp::Bool(true))
             .add_prop(
                 "header_libs",
                 SoongProp::VecStr(vec![
@@ -119,11 +121,7 @@ impl Project for Clspv {
                     CcLibraryHeaders::Clang.str(),
                 ]),
             )
-            .add_prop(
-                "export_include_dirs",
-                SoongProp::VecStr(vec![String::from("include")]),
-            )
-            .add_prop("optimize_for_size", SoongProp::Bool(true))
+            .extend_prop("export_include_dirs", vec!["include"])
     }
 
     fn map_cmd_output(&self, output: &Path) -> PathBuf {

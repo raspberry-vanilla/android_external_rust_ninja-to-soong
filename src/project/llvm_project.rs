@@ -42,14 +42,6 @@ impl Project for LlvmProject {
                 ]
             )?;
         }
-        let targets_to_generate = Dep::LlvmProjectTargets.get(projects_map)?;
-        let libclc_binaries = Dep::LibclcBins.get(projects_map)?;
-        if !ctx.skip_build {
-            let mut targets_to_build = Vec::new();
-            targets_to_build.extend(targets_to_generate.clone());
-            targets_to_build.extend(libclc_binaries.clone());
-            common::cmake_build(&build_path, &targets_to_build)?;
-        }
 
         const CMAKE_GENERATED: &str = "cmake_generated";
         let cmake_generated_path = Path::new(CMAKE_GENERATED);
@@ -60,7 +52,7 @@ impl Project for LlvmProject {
             &["LICENSE.TXT"],
         )
         .generate(
-            NinjaTargetsToGenMap::from_dep(targets_to_generate),
+            NinjaTargetsToGenMap::from_dep(Dep::LlvmProjectTargets.get(projects_map)?),
             parse_build_ninja::<CmakeNinjaTarget>(&build_path)?,
             &src_path,
             &ndk_path,
@@ -104,6 +96,7 @@ impl Project for LlvmProject {
                 vec![path_to_string(clang_header)],
             ));
         }
+        let libclc_binaries = Dep::LibclcBins.get(projects_map)?;
         for binary in &libclc_binaries {
             let file_path = cmake_generated_path.join(binary);
             package = package.add_module(SoongModule::new_filegroup(
@@ -114,6 +107,9 @@ impl Project for LlvmProject {
 
         let mut gen_deps = package.get_gen_deps();
         gen_deps.extend(libclc_binaries);
+        if !ctx.skip_build {
+            common::ninja_build(&build_path, &gen_deps)?;
+        }
         gen_deps.extend(
             [
                 "include/llvm/Config/llvm-config.h",
@@ -141,6 +137,7 @@ impl Project for LlvmProject {
 cc_defaults {{
     name: "{RAW_DEFAULTS}",
     optimize_for_size: true,
+    vendor_available: true,
     cflags: [
         "-Wno-error",
         "-Wno-unreachable-code-loop-increment",
@@ -148,33 +145,29 @@ cc_defaults {{
 }}
 "#
             ))
-            .print()
+            .print(ctx)
     }
 
-    fn extend_module(&self, _target: &Path, module: SoongModule) -> SoongModule {
-        module.add_prop("defaults", SoongProp::VecStr(vec![String::from(DEFAULTS)]))
-    }
-    fn extend_cflags(&self, target: &Path) -> Vec<String> {
-        if target.ends_with("libLLVMSupport.a") {
-            [
+    fn extend_module(&self, target: &Path, module: SoongModule) -> Result<SoongModule, String> {
+        let cflags = if target.ends_with("libLLVMSupport.a") {
+            vec![
                 "-DBLAKE3_NO_AVX512",
                 "-DBLAKE3_NO_AVX2",
                 "-DBLAKE3_NO_SSE41",
                 "-DBLAKE3_NO_SSE2",
             ]
-            .into_iter()
-            .map(|flag| String::from(flag))
-            .collect()
         } else {
             Vec::new()
-        }
-    }
-    fn extend_shared_libs(&self, target: &Path) -> Vec<String> {
-        if target.ends_with("libLLVMSupport.a") {
-            vec![String::from("libz")]
+        };
+        let libs = if target.ends_with("libLLVMSupport.a") {
+            vec!["libz"]
         } else {
             Vec::new()
-        }
+        };
+        module
+            .add_prop("defaults", SoongProp::VecStr(vec![String::from(DEFAULTS)]))
+            .extend_prop("cflags", cflags)?
+            .extend_prop("shared_libs", libs)
     }
 
     fn filter_cflag(&self, _cflag: &str) -> bool {

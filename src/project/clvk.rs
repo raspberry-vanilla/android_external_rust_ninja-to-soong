@@ -55,9 +55,9 @@ impl Project for Clvk {
         )
         .generate(
             NinjaTargetsToGenMap::from(&[
-                NinjaTargetToGen("libOpenCL.so", Some(LIBCLVK), None),
-                NinjaTargetToGen("simple_test", None, None),
-                NinjaTargetToGen("api_tests", None, None),
+                target!("libOpenCL.so", LIBCLVK),
+                target_typed!("simple_test", "cc_test"),
+                target_typed!("api_tests", "cc_test"),
             ]),
             parse_build_ninja::<CmakeNinjaTarget>(&build_path)?,
             &src_path,
@@ -75,7 +75,7 @@ impl Project for Clvk {
                 r#"
 cc_genrule {{
     name: "{CLVK_ICD_GENRULE}",
-    cmd: "echo /system/$$CC_MULTILIB/{LIBCLVK}.so > $(out)",
+    cmd: "echo /vendor/$$CC_MULTILIB/{LIBCLVK}.so > $(out)",
     out: ["clvk.icd"],
     soc_specific: true,
 }}
@@ -89,7 +89,7 @@ prebuilt_etc {{
 }}
 "#
             ))
-            .print()
+            .print(ctx)
     }
 
     fn get_deps(&self, dep: Dep) -> Vec<PathBuf> {
@@ -110,14 +110,7 @@ prebuilt_etc {{
             .collect()
     }
 
-    fn extend_cflags(&self, target: &Path) -> Vec<String> {
-        if target.ends_with("api_tests") {
-            vec![String::from("-Wno-missing-braces")]
-        } else {
-            Vec::new()
-        }
-    }
-    fn extend_module(&self, target: &Path, mut module: SoongModule) -> SoongModule {
+    fn extend_module(&self, target: &Path, mut module: SoongModule) -> Result<SoongModule, String> {
         let mut header_libs = vec![String::from("OpenCL-Headers")];
         if target.ends_with("api_tests") {
             header_libs.push(CcLibraryHeaders::SpirvHeaders.str());
@@ -125,7 +118,15 @@ prebuilt_etc {{
         } else if target.ends_with("simple_test") {
             module = module.add_prop("gtest", SoongProp::Bool(false))
         }
-        module.add_prop("header_libs", SoongProp::VecStr(header_libs))
+        let cflags = if target.ends_with("api_tests") {
+            vec!["-Wno-missing-braces"]
+        } else {
+            Vec::new()
+        };
+        module
+            .add_prop("soc_specific", SoongProp::Bool(true))
+            .add_prop("header_libs", SoongProp::VecStr(header_libs))
+            .extend_prop("cflags", cflags)
     }
 
     fn map_lib(&self, library: &Path) -> Option<PathBuf> {
@@ -137,13 +138,6 @@ prebuilt_etc {{
             },
             "external",
         ))
-    }
-    fn map_module_name(&self, _target: &Path, module_name: &str) -> String {
-        String::from(if module_name == "cc_binary" {
-            "cc_test"
-        } else {
-            module_name
-        })
     }
 
     fn filter_cflag(&self, _cflag: &str) -> bool {

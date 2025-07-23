@@ -70,20 +70,26 @@ impl Project for Mesa3DDesktopPanVK {
             &[
                 "SPDX-license-identifier-Apache-2.0",
                 "SPDX-license-identifier-MIT",
+                "SPDX-license-identifier-BSL-1.0",
             ],
-            &["licenses/Apache-2.0", "licenses/MIT"],
+            &["licenses/Apache-2.0", "licenses/MIT", "licenses/BSL-1.0"],
         )
         .generate(
             NinjaTargetsToGenMap::from(&[
-                NinjaTargetToGen(
+                target!(
                     "src/panfrost/vulkan/libvulkan_panfrost.so",
-                    Some("mesa3d_desktop-panvk_libvulkan_panfrost"),
-                    Some("vulkan.panfrost"),
+                    "mesa3d_desktop-panvk_libvulkan_panfrost",
+                    "vulkan.panfrost"
                 ),
-                NinjaTargetToGen(
+                target!(
                     "src/tool/pps/pps-producer",
-                    Some("mesa3d_desktop-panvk_pps-producer"),
-                    Some("pps-producer"),
+                    "mesa3d_desktop-panvk_pps-producer",
+                    "pps-producer"
+                ),
+                target!(
+                    "src/tool/pps/libgpudataproducer.so",
+                    "mesa3d_desktop-panvk_libgpudataproducer",
+                    "libgpudataproducer"
                 ),
             ]),
             parse_build_ninja::<MesonNinjaTarget>(&build_path)?,
@@ -106,22 +112,17 @@ impl Project for Mesa3DDesktopPanVK {
 
         let default_module = SoongModule::new("cc_defaults")
             .add_prop("name", SoongProp::Str(String::from(DEFAULTS)))
+            .add_prop("soc_specific", SoongProp::Bool(true))
+            .add_prop(
+                "header_libs",
+                SoongProp::VecStr(vec!["libdrm_headers".to_string()]),
+            )
             .add_props(package.get_props("mesa3d_desktop-panvk_pps-producer", vec!["cflags"])?);
 
-        package.add_module(default_module).print()
+        package.add_module(default_module).print(ctx)
     }
 
-    fn extend_module(&self, target: &Path, module: SoongModule) -> SoongModule {
-        let is_soc_specific = |module: SoongModule| -> SoongModule {
-            for lib in ["libvulkan_panfrost.so", "pps-producer"] {
-                if target.ends_with(lib) {
-                    return module.add_prop("soc_specific", SoongProp::Bool(true));
-                }
-            }
-            module
-        };
-        let module = is_soc_specific(module);
-
+    fn extend_module(&self, target: &Path, module: SoongModule) -> Result<SoongModule, String> {
         let relative_install = |module: SoongModule| -> SoongModule {
             if target.ends_with("libvulkan_panfrost.so") {
                 return module
@@ -131,50 +132,12 @@ impl Project for Mesa3DDesktopPanVK {
         };
         let module = relative_install(module);
 
-        let mut libs = Vec::new();
-        for lib in [
-            "libmesa_util.a",
-            "libpanfrost_lib.a",
-            "libpanfrost_perf.a",
-            "libpankmod_lib.a",
-            "libpanvk_v6.a",
-            "libpanvk_v7.a",
-            "libpanvk_v10.a",
-            "libpanvk_v12.a",
-            "libpanvk_v13.a",
-            "libpps.a",
-            "libpps-panfrost.a",
-            "libvulkan_instance.a",
-            "libvulkan_lite_runtime.a",
-            "libvulkan_wsi.a",
-        ] {
-            if target.ends_with(lib) {
-                libs.push("libdrm_headers");
-                break;
-            }
-        }
-        if target.ends_with("libpanvk_v6.a")
-            || target.ends_with("libpanvk_v7.a")
-            || target.ends_with("libpanvk_v10.a")
-            || target.ends_with("libpanvk_v12.a")
-            || target.ends_with("libpanvk_v13.a")
-            || target.ends_with("libvulkan_panfrost.so")
-        {
-            libs.push("hwvulkan_headers");
-        }
-
-        let module = module.add_prop(
-            "header_libs",
-            SoongProp::VecStr(libs.into_iter().map(|lib| String::from(lib)).collect()),
-        );
-
-        if !["libperfetto.a"].contains(&file_name(target).as_str()) {
-            module.add_prop("defaults", SoongProp::VecStr(vec![String::from(DEFAULTS)]))
+        let module = if target.ends_with("libvulkan_panfrost.so") {
+            module.add_prop("afdo", SoongProp::Bool(true))
         } else {
             module
-        }
-    }
-    fn extend_cflags(&self, target: &Path) -> Vec<String> {
+        };
+
         let mut cflags = vec![
             "-Wno-constant-conversion",
             "-Wno-enum-conversion",
@@ -189,24 +152,22 @@ impl Project for Mesa3DDesktopPanVK {
         if target.ends_with("libvulkan_lite_runtime.a") {
             cflags.push("-Wno-unreachable-code-loop-increment");
         }
-        cflags.into_iter().map(|flag| String::from(flag)).collect()
-    }
-    fn extend_shared_libs(&self, target: &Path) -> Vec<String> {
         let mut libs = Vec::new();
-        if target.ends_with("libpankmod_lib.a")
-            || target.ends_with("libvulkan_lite_runtime.a")
-            || target.ends_with("libvulkan_wsi.a")
-        {
-            libs.push("libsync");
-        }
         if target.ends_with("libmesa_util.a") {
             libs.push("libz");
         }
-        if target.starts_with("src/panfrost/vulkan") || target.ends_with("libvulkan_lite_runtime.a")
-        {
-            libs.push("libnativewindow");
+        if !["libperfetto.a"].contains(&file_name(target).as_str()) {
+            module.add_prop("defaults", SoongProp::VecStr(vec![String::from(DEFAULTS)]))
+        } else {
+            module
+                .add_prop("soc_specific", SoongProp::Bool(true))
+                .add_prop(
+                    "header_libs",
+                    SoongProp::VecStr(vec!["liblog_headers".to_string()]),
+                )
         }
-        libs.into_iter().map(|lib| String::from(lib)).collect()
+        .extend_prop("cflags", cflags)?
+        .extend_prop("shared_libs", libs)
     }
 
     fn map_lib(&self, library: &Path) -> Option<PathBuf> {
@@ -228,9 +189,8 @@ impl Project for Mesa3DDesktopPanVK {
     fn filter_include(&self, include: &Path) -> bool {
         let inc = path_to_string(include);
         let subprojects = self.src_path.join("subprojects");
-        !include.ends_with("android_stub")
-            && (!inc.contains(&path_to_string(&subprojects))
-                || inc.contains(&path_to_string(&subprojects.join("perfetto"))))
+        !inc.contains(&path_to_string(&subprojects))
+            || inc.contains(&path_to_string(&subprojects.join("perfetto")))
     }
     fn filter_link_flag(&self, flag: &str) -> bool {
         flag == "-Wl,--build-id=sha1"
