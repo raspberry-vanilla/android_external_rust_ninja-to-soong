@@ -10,6 +10,9 @@
 // CI version, no wildcard generated
 //
 
+soong_namespace {
+}
+
 package {
     default_visibility: ["//visibility:public"],
     default_applicable_licenses: ["mesa3d_desktop_intel_licenses"],
@@ -3552,12 +3555,6 @@ cc_defaults {
 cc_defaults {
     name: "mesa3d-desktop-intel-raw-defaults",
     soc_specific: true,
-    enabled: false,
-    arch: {
-        x86_64: {
-            enabled: true,
-        },
-    },
     header_libs: [
         "libcutils_headers",
         "libhardware_headers",
