@@ -68,7 +68,7 @@ impl Project for SpirvTools {
         ));
         self.gen_deps = package.get_gen_deps();
 
-        package.print()
+        package.print(ctx)
     }
 
     fn get_deps_prefix(&self) -> Vec<(PathBuf, Dep)> {
@@ -85,24 +85,19 @@ impl Project for SpirvTools {
         }
     }
 
-    fn extend_module(&self, _target: &Path, module: SoongModule) -> SoongModule {
+    fn extend_module(&self, _target: &Path, module: SoongModule) -> Result<SoongModule, String> {
         module
+            .add_prop("vendor_available", SoongProp::Bool(true))
             .add_prop(
                 "header_libs",
                 SoongProp::VecStr(vec![CcLibraryHeaders::SpirvHeaders.str()]),
             )
-            .add_prop(
-                "export_include_dirs",
-                SoongProp::VecStr(vec![String::from("include")]),
-            )
+            .extend_prop("export_include_dirs", vec!["include"])?
             .add_prop(
                 "export_header_lib_headers",
                 SoongProp::VecStr(vec![CcLibraryHeaders::SpirvHeaders.str()]),
             )
-    }
-
-    fn extend_cflags(&self, _target: &Path) -> Vec<String> {
-        vec![String::from("-Wno-implicit-fallthrough")]
+            .extend_prop("cflags", vec!["-Wno-implicit-fallthrough"])
     }
 
     fn filter_cflag(&self, _cflag: &str) -> bool {
