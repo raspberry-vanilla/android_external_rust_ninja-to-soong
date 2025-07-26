@@ -91,7 +91,7 @@ impl Project for OpenclCts {
             .collect::<Vec<_>>();
         let targets = tests
             .iter()
-            .map(|(test, name)| NinjaTargetToGen(test, Some(name), None))
+            .map(|(test, name)| target_typed!(test, "cc_test", name))
             .collect::<Vec<_>>();
         let mut package = SoongPackage::new(
             &["//visibility:public"],
@@ -117,7 +117,7 @@ impl Project for OpenclCts {
 
         let gen_deps = package.get_gen_deps();
         if !ctx.skip_build {
-            common::cmake_build(&build_path, &gen_deps)?;
+            common::ninja_build(&build_path, &gen_deps)?;
         }
         common::copy_gen_deps(gen_deps, CMAKE_GENERATED, &build_path, ctx, self)?;
 
@@ -135,77 +135,58 @@ impl Project for OpenclCts {
             .add_module(default_module)
             .add_raw_suffix(&format!(
                 r#"
-python_defaults {{
-    name: "opencl_cts_data",
-    data: [
-{0}
+cc_defaults {{
+    name: "{DEFAULTS_MANUAL}",
+    header_libs: ["OpenCL-Headers"],
+    cflags: [
+        "-Wno-error",
+        "-Wno-c++11-narrowing",
+        "-Wno-non-virtual-dtor",
+        "-Wno-string-concatenation",
+        "-fexceptions",
     ],
+    gtest: false,
+    test_options: {{
+        unit_test: false,
+    }},
 }}
-
-build = ["AndroidManual.bp"]
-"#,
-                tests
-                    .iter()
-                    .map(|(_, test)| String::from("        \":") + test + "\",")
-                    .collect::<Vec<_>>()
-                    .join("\n")
+"#
             ))
-            .print()
+            .print(ctx)
     }
 
-    fn extend_module(&self, target: &Path, mut module: SoongModule) -> SoongModule {
-        if target.ends_with("test_compiler") {
-            module = module.add_prop(
-                "data",
-                SoongProp::VecStr(vec![
-                    String::from(
-                        "test_conformance/compiler/includeTestDirectory/testIncludeFile.h",
-                    ),
-                    String::from(
-                        "test_conformance/compiler/secondIncludeTestDirectory/testIncludeFile.h",
-                    ),
-                ]),
-            );
-        }
+    fn extend_module(&self, target: &Path, mut module: SoongModule) -> Result<SoongModule, String> {
+        let mut data = Vec::new();
         let is_test_spir = target.ends_with("test_spir");
-        if is_test_spir {
+        let spirv_bin = format!("{CMAKE_GENERATED}/test_conformance/spirv_new/spirv_bin/*");
+        if target.ends_with("test_compiler") {
+            data.push("test_conformance/compiler/includeTestDirectory/testIncludeFile.h");
+            data.push("test_conformance/compiler/secondIncludeTestDirectory/testIncludeFile.h")
+        } else if is_test_spir {
+            data.push("test_conformance/spir/*.zip");
+        } else if target.ends_with("test_spirv_new") {
+            data.push(&spirv_bin);
+        }
+        let defaults = if target.ends_with("libharness.a") {
+            DEFAULTS_MANUAL
+        } else {
             module = module.add_prop(
-                "data",
-                SoongProp::VecStr(vec![String::from("test_conformance/spir/*.zip")]),
+                "test_config",
+                SoongProp::Str(String::from("android/") + &file_name(target) + ".xml"),
             );
-        }
-        if target.ends_with("test_spirv_new") {
-            module = module.add_prop(
-                "data",
-                SoongProp::VecStr(vec![
-                    String::from(CMAKE_GENERATED) + "/test_conformance/spirv_new/spirv_bin/*",
-                ]),
-            )
-        }
-        module = module.add_prop("rtti", SoongProp::Bool(is_test_spir));
-        module.add_prop(
-            "defaults",
-            SoongProp::VecStr(vec![String::from(if target.ends_with("libharness.a") {
-                DEFAULTS_MANUAL
-            } else {
-                DEFAULTS
-            })]),
-        )
+            DEFAULTS
+        };
+        module
+            .add_prop("rtti", SoongProp::Bool(is_test_spir))
+            .extend_prop("defaults", vec![defaults])?
+            .extend_prop("data", data)
     }
 
     fn map_lib(&self, lib: &Path) -> Option<PathBuf> {
         if lib.ends_with("libOpenCL") {
-            Some(PathBuf::from("//external/OpenCL-ICD-Loader:libOpenCL"))
-        } else {
-            None
+            return Some(PathBuf::from("//external/OpenCL-ICD-Loader:libOpenCL"));
         }
-    }
-    fn map_module_name(&self, _target: &Path, module_name: &str) -> String {
-        String::from(if module_name == "cc_binary" {
-            "cc_test"
-        } else {
-            module_name
-        })
+        None
     }
 
     fn filter_cflag(&self, _cflag: &str) -> bool {

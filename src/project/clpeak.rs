@@ -48,7 +48,7 @@ impl Project for Clpeak {
             &["LICENSE"],
         )
         .generate(
-            NinjaTargetsToGenMap::from(&[NinjaTargetToGen("clpeak", Some("clpeak"), None)]),
+            NinjaTargetsToGenMap::from(&[target_typed!("clpeak", "cc_benchmark", "clpeak")]),
             parse_build_ninja::<CmakeNinjaTarget>(&build_path)?,
             &self.src_path,
             &ndk_path,
@@ -57,28 +57,22 @@ impl Project for Clpeak {
             self,
             ctx,
         )?
-        .print()
+        .print(ctx)
     }
 
-    fn extend_cflags(&self, _target: &Path) -> Vec<String> {
-        vec![String::from("-fexceptions")]
-    }
-    fn extend_module(&self, _target: &Path, module: SoongModule) -> SoongModule {
+    fn extend_module(&self, _target: &Path, module: SoongModule) -> Result<SoongModule, String> {
         module
-            .add_prop(
-                "shared_libs",
-                SoongProp::VecStr(vec![String::from("//external/OpenCL-ICD-Loader:libOpenCL")]),
-            )
-            .add_prop("test_suites", SoongProp::VecStr(vec![String::from("dts")]))
-            .add_prop(
-                "header_libs",
-                SoongProp::VecStr(vec![String::from("OpenCL-CLHPP")]),
-            )
+            .extend_prop("test_suites", vec!["dts"])?
+            .extend_prop("header_libs", vec!["OpenCL-CLHPP"])?
             .add_prop("soc_specific", SoongProp::Bool(true))
+            .extend_prop("cflags", vec!["-fexceptions"])
     }
 
-    fn map_module_name(&self, _target: &Path, _module_name: &str) -> String {
-        String::from("cc_benchmark")
+    fn map_lib(&self, lib: &Path) -> Option<PathBuf> {
+        if lib.ends_with("libOpenCL") {
+            return Some(PathBuf::from("//external/OpenCL-ICD-Loader:libOpenCL"));
+        }
+        None
     }
 
     fn filter_cflag(&self, cflag: &str) -> bool {
@@ -90,7 +84,7 @@ impl Project for Clpeak {
     fn filter_link_flag(&self, _flag: &str) -> bool {
         false
     }
-    fn filter_lib(&self, _lib: &str) -> bool {
-        false
+    fn filter_lib(&self, lib: &str) -> bool {
+        lib.contains("libOpenCL")
     }
 }

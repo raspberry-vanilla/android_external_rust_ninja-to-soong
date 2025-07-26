@@ -207,7 +207,7 @@ where
     }
     pub fn generate_object(
         &mut self,
-        name: &str,
+        module_type: &str,
         target: &T,
         ctx: &Context,
     ) -> Result<Vec<SoongModule>, String> {
@@ -254,7 +254,6 @@ where
         includes.extend(self.get_includes(target.get_includes(self.build_path)));
         cflags.extend(self.get_defines(target.get_defines()));
         cflags.extend(self.get_cflags(target.get_cflags()));
-        cflags.extend(self.project.extend_cflags(&target_name));
 
         let generated_headers = self.get_generated_headers(target)?;
         let (version_script, link_flags) = target.get_link_flags();
@@ -262,10 +261,13 @@ where
         whole_static_libs.extend(self.get_libs(target.get_libs_static_whole(), &module_name));
         static_libs.extend(self.get_libs(target.get_libs_static(), &module_name));
         shared_libs.extend(self.get_libs(target.get_libs_shared(), &module_name));
-        shared_libs.extend(self.project.extend_shared_libs(&target_name));
 
-        let mut module = SoongModule::new(&self.project.map_module_name(&target_name, name))
-            .add_prop("name", SoongProp::Str(module_name));
+        let module_type = match self.targets_to_gen.get_module_name(&target_name) {
+            Some(module_type) => module_type,
+            None => String::from(module_type),
+        };
+        let mut module =
+            SoongModule::new(&module_type).add_prop("name", SoongProp::Str(module_name));
         if let Some(stem) = self.targets_to_gen.get_stem(&target_name) {
             module = module.add_prop("stem", SoongProp::Str(stem));
         }
@@ -288,7 +290,7 @@ where
             .add_prop("local_include_dirs", SoongProp::VecStr(includes))
             .add_prop("generated_headers", SoongProp::VecStr(generated_headers));
 
-        modules.push(self.project.extend_module(&target_name, module));
+        modules.push(self.project.extend_module(&target_name, module)?);
         Ok(modules)
     }
 
@@ -447,5 +449,6 @@ where
             .add_prop("srcs", SoongProp::VecStr(sources))
             .add_prop("out", SoongProp::VecStr(outputs))
             .add_prop("tool_files", SoongProp::VecStr(vec![tool]))
+            .add_prop("vendor_available", SoongProp::Bool(true))
     }
 }
