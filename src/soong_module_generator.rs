@@ -277,11 +277,12 @@ where
                 SoongProp::Str(path_to_string(strip_prefix(vs, &self.src_path))),
             );
         }
+        let mut srcs_prop = SoongNamedProp::new("srcs", SoongProp::VecStr(sources));
         if ctx.wildcardize_paths {
-            sources = wildcardize_paths(sources, &self.src_path);
+            srcs_prop.enable_wildcard(&self.src_path)?;
         }
         module = module
-            .add_prop("srcs", SoongProp::VecStr(sources))
+            .add_named_prop(srcs_prop)
             .add_prop("cflags", SoongProp::VecStr(cflags))
             .add_prop("ldflags", SoongProp::VecStr(link_flags))
             .add_prop("shared_libs", SoongProp::VecStr(shared_libs))
@@ -416,7 +417,11 @@ where
             })
             .collect()
     }
-    pub fn generate_custom_command(&mut self, target: &T, rule_cmd: NinjaRuleCmd) -> SoongModule {
+    pub fn generate_custom_command(
+        &mut self,
+        target: &T,
+        rule_cmd: NinjaRuleCmd,
+    ) -> Result<SoongModule, String> {
         let mut inputs = Vec::new();
         let mut deps = Vec::new();
         inputs.extend(self.get_cmd_inputs(target.get_inputs().clone(), &mut deps));
@@ -443,12 +448,14 @@ where
             .collect();
         let module_name = path_to_id(Path::new(self.project.get_name()).join(target.get_name()));
 
-        SoongModule::new("cc_genrule")
-            .add_prop("name", SoongProp::Str(module_name))
-            .add_prop("cmd", SoongProp::Str(cmd))
-            .add_prop("srcs", SoongProp::VecStr(sources))
-            .add_prop("out", SoongProp::VecStr(outputs))
-            .add_prop("tool_files", SoongProp::VecStr(vec![tool]))
-            .add_prop("vendor_available", SoongProp::Bool(true))
+        self.project.extend_custom_command(
+            &target.get_name(),
+            SoongModule::new("cc_genrule")
+                .add_prop("name", SoongProp::Str(module_name))
+                .add_prop("cmd", SoongProp::Str(cmd))
+                .add_prop("srcs", SoongProp::VecStr(sources))
+                .add_prop("out", SoongProp::VecStr(outputs))
+                .add_prop("tool_files", SoongProp::VecStr(vec![tool])),
+        )
     }
 }
