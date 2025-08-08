@@ -8,14 +8,14 @@ third_party {
   license_type: NOTICE
   last_upgrade_date {
     year: 2025
-    month: 7
-    day: 31
+    month: 8
+    day: 8
   }
   homepage: "https://github.com/rjodinchr/ninja-to-soong"
   identifier {
     type: "Git"
     value: "https://github.com/rjodinchr/ninja-to-soong"
-    version: "54955dee6dd807afecb92ea08a5c1bb8a79eabe3"
+    version: "5d0fb8b1de6b8e9145816c2850a86d548e21547a"
     primary_source: true
   }
 }
