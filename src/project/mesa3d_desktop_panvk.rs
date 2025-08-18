@@ -9,6 +9,7 @@ pub struct Mesa3DDesktopPanVK {
 }
 
 const DEFAULTS: &str = "mesa3d-desktop-panvk-defaults";
+const RAW_DEFAULTS: &str = "mesa3d-desktop-intel-raw-defaults";
 
 impl Project for Mesa3DDesktopPanVK {
     fn get_name(&self) -> &'static str {
@@ -59,7 +60,6 @@ impl Project for Mesa3DDesktopPanVK {
                 ]
             )?;
         }
-        common::ninja_build(&build_path, &Vec::new(), ctx)?;
 
         const MESON_GENERATED: &str = "meson_generated";
         let mut package = SoongPackage::new(
@@ -84,11 +84,6 @@ impl Project for Mesa3DDesktopPanVK {
                     "mesa3d_desktop-panvk_pps-producer",
                     "pps-producer"
                 ),
-                target!(
-                    "src/tool/pps/libgpudataproducer.so",
-                    "mesa3d_desktop-panvk_libgpudataproducer",
-                    "libgpudataproducer"
-                ),
             ]),
             parse_build_ninja::<MesonNinjaTarget>(&build_path)?,
             &self.src_path,
@@ -104,18 +99,20 @@ impl Project for Mesa3DDesktopPanVK {
             .into_iter()
             .filter(|include| !include.starts_with("subprojects"))
             .collect();
+
+        common::ninja_build(&build_path, &gen_deps, ctx)?;
+
         package.filter_local_include_dirs(MESON_GENERATED, &gen_deps)?;
         common::clean_gen_deps(&gen_deps, &build_path, ctx)?;
         common::copy_gen_deps(gen_deps, MESON_GENERATED, &build_path, ctx, self)?;
 
         let default_module = SoongModule::new("cc_defaults")
             .add_prop("name", SoongProp::Str(String::from(DEFAULTS)))
-            .add_prop("soc_specific", SoongProp::Bool(true))
+            .add_props(package.get_props("mesa3d_desktop-panvk_pps-producer", vec!["cflags"])?)
             .add_prop(
-                "header_libs",
-                SoongProp::VecStr(vec!["libdrm_headers".to_string()]),
-            )
-            .add_props(package.get_props("mesa3d_desktop-panvk_pps-producer", vec!["cflags"])?);
+                "defaults",
+                SoongProp::VecStr(vec![String::from(RAW_DEFAULTS)]),
+            );
 
         package
             .add_module(default_module)
@@ -125,21 +122,24 @@ soong_namespace {
 }
 "#,
             )
+            .add_raw_suffix(&format!(
+                r#"
+cc_defaults {{
+    name: "{RAW_DEFAULTS}",
+    soc_specific: true,
+    header_libs: ["libdrm_headers"],
+}}
+"#
+            ))
             .print(ctx)
     }
 
-    fn extend_module(&self, target: &Path, module: SoongModule) -> Result<SoongModule, String> {
-        let module = if target.ends_with("libvulkan_panfrost.so") {
-            module.add_prop("relative_install_path", SoongProp::Str(String::from("hw")))
-        } else {
-            module
-        };
-
-        let module = if target.ends_with("libvulkan_panfrost.so") {
-            module.add_prop("afdo", SoongProp::Bool(true))
-        } else {
-            module
-        };
+    fn extend_module(&self, target: &Path, mut module: SoongModule) -> Result<SoongModule, String> {
+        if target.ends_with("libvulkan_panfrost.so") {
+            module = module
+                .add_prop("relative_install_path", SoongProp::Str(String::from("hw")))
+                .add_prop("afdo", SoongProp::Bool(true))
+        }
 
         let mut cflags = vec![
             "-Wno-constant-conversion",
@@ -155,22 +155,20 @@ soong_namespace {
         if target.ends_with("libvulkan_lite_runtime.a") {
             cflags.push("-Wno-unreachable-code-loop-increment");
         }
-        let mut libs = Vec::new();
         if target.ends_with("libmesa_util.a") {
-            libs.push("libz");
+            module = module.extend_prop("shared_libs", vec!["libz"])?;
         }
         if !["libperfetto.a"].contains(&file_name(target).as_str()) {
             module.add_prop("defaults", SoongProp::VecStr(vec![String::from(DEFAULTS)]))
         } else {
             module
-                .add_prop("soc_specific", SoongProp::Bool(true))
                 .add_prop(
                     "header_libs",
                     SoongProp::VecStr(vec!["liblog_headers".to_string()]),
                 )
+                .add_prop("soc_specific", SoongProp::Bool(true))
         }
-        .extend_prop("cflags", cflags)?
-        .extend_prop("shared_libs", libs)
+        .extend_prop("cflags", cflags)
     }
 
     fn map_lib(&self, library: &Path) -> Option<PathBuf> {
@@ -186,9 +184,6 @@ soong_namespace {
     fn filter_cflag(&self, _cflag: &str) -> bool {
         false
     }
-    fn filter_define(&self, define: &str) -> bool {
-        define != "WITH_LIBBACKTRACE" // b/120606663
-    }
     fn filter_include(&self, include: &Path) -> bool {
         let inc = path_to_string(include);
         let subprojects = self.src_path.join("subprojects");
@@ -200,9 +195,6 @@ soong_namespace {
     }
     fn filter_gen_header(&self, _header: &Path) -> bool {
         false
-    }
-    fn filter_lib(&self, lib: &str) -> bool {
-        !lib.contains("libbacktrace")
     }
     fn filter_target(&self, target: &Path) -> bool {
         let file_name = file_name(target);
