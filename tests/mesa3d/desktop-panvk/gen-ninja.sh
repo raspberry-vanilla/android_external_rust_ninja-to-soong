@@ -22,6 +22,7 @@ meson setup \
     --cross-file "${AOSP_AARCH64}" \
     --libdir lib64 \
     --sysconfdir=/system/vendor/etc \
+    -Dandroid-libbacktrace=disabled \
     -Dllvm=disabled \
     -Degl=disabled \
     -Dplatform-sdk-version=${ANDROID_PLATFORM} \
@@ -35,7 +36,7 @@ meson setup \
     -Dbuildtype=release \
     -Dmesa-clc=system \
     -Dprecomp-compiler=system \
-    -Dallow-fallback-for=libdrm \
+    -Dallow-fallback-for=libdrm,perfetto \
     -Dstrip=true \
     --reconfigure \
     --wipe \
