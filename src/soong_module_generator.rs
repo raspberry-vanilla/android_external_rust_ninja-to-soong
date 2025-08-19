@@ -281,12 +281,11 @@ where
                 SoongProp::Str(path_to_string(strip_prefix(vs, &self.src_path))),
             );
         }
-        let mut srcs_prop = SoongNamedProp::new("srcs", SoongProp::VecStr(sources));
         if ctx.wildcardize_paths {
-            srcs_prop.enable_wildcard(&self.src_path)?;
+            sources = wildcardize_paths(sources, &self.src_path);
         }
         module = module
-            .add_named_prop(srcs_prop)
+            .add_prop("srcs", SoongProp::VecStr(sources))
             .add_prop("cflags", SoongProp::VecStr(cflags))
             .add_prop("ldflags", SoongProp::VecStr(link_flags))
             .add_prop("shared_libs", SoongProp::VecStr(shared_libs))

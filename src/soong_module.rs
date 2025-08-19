@@ -35,7 +35,6 @@ pub enum SoongProp {
 pub struct SoongNamedProp {
     name: String,
     prop: SoongProp,
-    wildcard_src_path: Option<PathBuf>,
 }
 
 impl SoongNamedProp {
@@ -43,17 +42,7 @@ impl SoongNamedProp {
         Self {
             name: String::from(name),
             prop,
-            wildcard_src_path: None,
         }
-    }
-
-    pub fn enable_wildcard(&mut self, src_path: &Path) -> Result<(), String> {
-        match &self.prop {
-            SoongProp::VecStr(_) => (),
-            _ => return error!("Could not wildcardize a non-VecStr property"),
-        }
-        self.wildcard_src_path = Some(PathBuf::from(src_path));
-        Ok(())
     }
 
     pub fn get_prop(&self) -> SoongProp {
@@ -158,9 +147,6 @@ impl SoongNamedProp {
             SoongProp::VecStr(mut vec_str) => {
                 if vec_str.len() == 0 {
                     return String::new();
-                }
-                if let Some(src_path) = self.wildcard_src_path {
-                    vec_str = wildcardize_paths(vec_str, &src_path);
                 }
                 vec_str.sort_unstable();
                 vec_str.dedup();
