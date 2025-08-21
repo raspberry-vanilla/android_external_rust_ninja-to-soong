@@ -12,6 +12,7 @@ use crate::soong_package_merger::*;
 use crate::utils::*;
 
 pub mod common;
+pub mod mesa3d_desktop;
 
 define_ProjectId!(
     (Angle, angle),
@@ -22,6 +23,7 @@ define_ProjectId!(
     (Mesa3DDesktopIntel, mesa3d_desktop_intel),
     (Mesa3DDesktopPanVK, mesa3d_desktop_panvk),
     (OpenclCts, opencl_cts),
+    (OpenclIcdLoader, opencl_icd_loader),
     (SpirvHeaders, spirv_headers),
     (SpirvTools, spirv_tools),
     (UnitTest, unittest)

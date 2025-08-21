@@ -9,13 +9,13 @@ third_party {
   last_upgrade_date {
     year: 2025
     month: 8
-    day: 18
+    day: 21
   }
   homepage: "https://github.com/rjodinchr/ninja-to-soong"
   identifier {
     type: "Git"
     value: "https://github.com/rjodinchr/ninja-to-soong"
-    version: "44c04c818e7026e5ec765b632d0fe6b1ab2b7da0"
+    version: "36b0d7a77e7d72df3c3ae50f25761ab1ad67d1d1"
     primary_source: true
   }
 }
