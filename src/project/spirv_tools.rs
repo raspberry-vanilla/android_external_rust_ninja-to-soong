@@ -42,6 +42,15 @@ impl Project for SpirvTools {
             )?;
         }
 
+        let generate_vksp_deps = !ctx.copy_to_aosp;
+        const GENERATED_TABLES: &str = "SPIRV-Tools_core_tables";
+        let mut targets_to_gen =
+            NinjaTargetsToGenMap::from(&Dep::SpirvToolsTargets.get_ninja_targets(projects_map)?);
+        if generate_vksp_deps {
+            targets_to_gen = targets_to_gen
+                .push(target!("core_tables_body.inc", GENERATED_TABLES))
+                .push(target!("core_tables_header.inc", GENERATED_TABLES))
+        }
         let mut package = SoongPackage::new(
             &[],
             "SPIRV-Tools_license",
@@ -49,7 +58,7 @@ impl Project for SpirvTools {
             &["LICENSE"],
         )
         .generate(
-            NinjaTargetsToGenMap::from(&Dep::SpirvToolsTargets.get_ninja_targets(projects_map)?),
+            targets_to_gen,
             parse_build_ninja::<CmakeNinjaTarget>(&self.build_path)?,
             &src_path,
             &ndk_path,
@@ -69,6 +78,24 @@ impl Project for SpirvTools {
             .map(|header| path_to_string(strip_prefix(header, &self.spirv_headers_path)))
             .collect();
 
+        if generate_vksp_deps {
+            package = package
+                .add_visibilities(vec![String::from("//external/vulkan-shader-profiler")])
+                .add_raw_suffix(&format!(
+                    r#"
+cc_library_headers {{
+    name: "SPIRV-Tools-sources",
+    header_libs: ["{0}"],
+    generated_headers: ["{GENERATED_TABLES}"],
+    export_include_dirs: ["."],
+    export_header_lib_headers: ["{0}"],
+    export_generated_headers: ["{GENERATED_TABLES}"],
+    vendor_available: true,
+}}
+"#,
+                    CcLibraryHeaders::SpirvHeadersUnified1.str()
+                ))
+        }
         package.print(ctx)
     }
 
@@ -80,7 +107,7 @@ impl Project for SpirvTools {
             Dep::SpirvHeaders => self
                 .gen_deps
                 .iter()
-                .map(|header| target!(&header))
+                .map(|header| target!(header.as_str()))
                 .collect(),
             _ => Vec::new(),
         }
@@ -114,6 +141,13 @@ impl Project for SpirvTools {
         Ok(module
             .add_prop("vendor_available", SoongProp::Bool(true))
             .add_prop("host_supported", SoongProp::Bool(true)))
+    }
+    fn extend_python_binary_host(
+        &self,
+        _python_binary_path: &Path,
+        module: SoongModule,
+    ) -> Result<Option<SoongModule>, String> {
+        Ok(Some(module.extend_prop("srcs", vec!["utils/Table/*.py"])?))
     }
 
     fn filter_cflag(&self, _cflag: &str) -> bool {

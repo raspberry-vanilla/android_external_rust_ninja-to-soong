@@ -13,6 +13,7 @@ use crate::utils::*;
 pub struct SoongModuleGeneratorInternals {
     pub deps: Vec<PathBuf>,
     pub libs: Vec<PathBuf>,
+    python_binaries: std::collections::HashSet<String>,
 }
 
 pub struct SoongModuleGenerator<'a, T>
@@ -171,10 +172,13 @@ where
                 } else if self.targets_map.get(header).is_none() {
                     return None;
                 }
-                Some(path_to_id(
-                    Path::new(self.project.get_name())
-                        .join(self.targets_map.get(header).unwrap().get_name()),
-                ))
+                Some(match self.targets_to_gen.get_name(header) {
+                    Some(name) => path_to_string(name),
+                    None => path_to_id(
+                        Path::new(self.project.get_name())
+                            .join(self.targets_map.get(header).unwrap().get_name()),
+                    ),
+                })
             })
             .collect())
     }
@@ -295,44 +299,6 @@ where
         Ok(modules)
     }
 
-    fn get_tool(&self, mut cmd: String, inputs: &mut Vec<PathBuf>) -> (String, String) {
-        while let Some(index) = cmd.find("python") {
-            let begin = str::from_utf8(&cmd.as_bytes()[0..index])
-                .unwrap()
-                .rfind(" ")
-                .unwrap_or_default();
-            cmd = match str::from_utf8(&cmd.as_bytes()[index..]).unwrap().find(" ") {
-                Some(end) => cmd.replace(
-                    str::from_utf8(&cmd.as_bytes()[begin..index + end + 1]).unwrap(),
-                    "",
-                ),
-                None => cmd.replace(str::from_utf8(&cmd.as_bytes()[begin..]).unwrap(), ""),
-            };
-        }
-        cmd = cmd.replace(&path_to_string_with_separator(self.build_path), "");
-        let tool_location = String::from("$(location) ");
-        let (tool, mut cmd) = if let Some((tool, cmd)) = cmd.split_once(" ") {
-            (String::from(tool), tool_location + cmd)
-        } else {
-            (String::from(cmd), tool_location)
-        };
-        for idx in 0..inputs.len() {
-            if path_to_string(&inputs[idx]) == tool {
-                inputs.remove(idx);
-                break;
-            }
-        }
-        if tool.ends_with(".py") {
-            cmd = String::from("python3 ") + &cmd;
-        }
-        (
-            path_to_string(strip_prefix(
-                canonicalize_path(&tool, self.build_path),
-                self.src_path,
-            )),
-            cmd,
-        )
-    }
     fn get_cmd(
         &self,
         mut cmd: String,
@@ -420,16 +386,98 @@ where
             })
             .collect()
     }
+    fn get_tool_module(
+        &mut self,
+        tool: &str,
+    ) -> Result<Option<(String, Option<Vec<SoongModule>>)>, String> {
+        if !tool.ends_with(".py") {
+            return Ok(None);
+        }
+        let tool_module = path_to_id(Path::new(self.project.get_name()).join(&tool));
+        if !self.internals.python_binaries.contains(&tool_module) {
+            let Some(module) = self.project.extend_python_binary_host(
+                &self.src_path.join(&tool),
+                SoongModule::new("python_binary_host")
+                    .add_prop("name", SoongProp::Str(tool_module.clone()))
+                    .add_prop("main", SoongProp::Str(String::from(tool)))
+                    .add_prop("srcs", SoongProp::VecStr(vec![String::from(tool)])),
+            )?
+            else {
+                return Ok(None);
+            };
+            self.internals.python_binaries.insert(tool_module.clone());
+            return Ok(Some((tool_module, Some(vec![module]))));
+        }
+        Ok(Some((tool_module, None)))
+    }
+    fn get_tools(
+        &mut self,
+        mut cmd: String,
+        inputs: &mut Vec<PathBuf>,
+    ) -> Result<(Vec<String>, Vec<String>, Vec<SoongModule>, String), String> {
+        if cmd.starts_with("cp") {
+            return Ok((Vec::new(), Vec::new(), Vec::new(), cmd));
+        }
+        while let Some(index) = cmd.find("python") {
+            let begin = str::from_utf8(&cmd.as_bytes()[0..index])
+                .unwrap()
+                .rfind(" ")
+                .unwrap_or_default();
+            cmd = match str::from_utf8(&cmd.as_bytes()[index..]).unwrap().find(" ") {
+                Some(end) => cmd.replace(
+                    str::from_utf8(&cmd.as_bytes()[begin..index + end + 1]).unwrap(),
+                    "",
+                ),
+                None => cmd.replace(str::from_utf8(&cmd.as_bytes()[begin..]).unwrap(), ""),
+            };
+        }
+        cmd = cmd.replace(&path_to_string_with_separator(self.build_path), "");
+        let tool_location = String::from("$(location) ");
+        let (tool, mut cmd) = if let Some((tool, cmd)) = cmd.split_once(" ") {
+            (String::from(tool), tool_location + cmd)
+        } else {
+            (String::from(cmd), tool_location)
+        };
+        for idx in 0..inputs.len() {
+            if path_to_string(&inputs[idx]) == tool {
+                inputs.remove(idx);
+                break;
+            }
+        }
+        *inputs = inputs
+            .into_iter()
+            .filter(|input| !input.ends_with("python3"))
+            .map(|input| input.clone())
+            .collect();
+        if tool.ends_with(".py") {
+            cmd = String::from("python3 ") + &cmd;
+        }
+        let tool = path_to_string(strip_prefix(
+            canonicalize_path(&tool, self.build_path),
+            self.src_path,
+        ));
+
+        if let Some((tool_module, some_modules)) = self.get_tool_module(&tool)? {
+            if let Some(modules) = some_modules {
+                Ok((Vec::new(), vec![tool_module], modules, cmd))
+            } else {
+                Ok((Vec::new(), vec![tool_module], Vec::new(), cmd))
+            }
+        } else {
+            Ok((vec![tool], Vec::new(), Vec::new(), cmd))
+        }
+    }
     pub fn generate_custom_command(
         &mut self,
         target: &T,
         rule_cmd: NinjaRuleCmd,
-    ) -> Result<SoongModule, String> {
+    ) -> Result<Vec<SoongModule>, String> {
         let mut inputs = Vec::new();
         let mut deps = Vec::new();
         inputs.extend(self.get_cmd_inputs(target.get_inputs().clone(), &mut deps));
         inputs.extend(self.get_cmd_inputs(target.get_implicit_deps().clone(), &mut deps));
-        let (tool, cmd) = self.get_tool(rule_cmd.command.clone(), &mut inputs);
+        let (tool_files, tool_modules, mut modules, cmd) =
+            self.get_tools(rule_cmd.command.clone(), &mut inputs)?;
         let mut sources = inputs
             .iter()
             .map(|input| {
@@ -449,16 +497,24 @@ where
             .iter()
             .map(|output| path_to_string(self.project.map_cmd_output(output)))
             .collect();
-        let module_name = path_to_id(Path::new(self.project.get_name()).join(target.get_name()));
+        let target_name = target.get_name();
+        let module_name = match self.targets_to_gen.get_name(&target_name) {
+            Some(name) => path_to_string(name),
+            None => path_to_id(Path::new(self.project.get_name()).join(target_name)),
+        };
 
-        self.project.extend_custom_command(
-            &target.get_name(),
-            SoongModule::new("cc_genrule")
-                .add_prop("name", SoongProp::Str(module_name))
-                .add_prop("cmd", SoongProp::Str(cmd))
-                .add_prop("srcs", SoongProp::VecStr(sources))
-                .add_prop("out", SoongProp::VecStr(outputs))
-                .add_prop("tool_files", SoongProp::VecStr(vec![tool])),
-        )
+        modules.push(
+            self.project.extend_custom_command(
+                &target.get_name(),
+                SoongModule::new("cc_genrule")
+                    .add_prop("name", SoongProp::Str(module_name))
+                    .add_prop("cmd", SoongProp::Str(cmd))
+                    .add_prop("srcs", SoongProp::VecStr(sources))
+                    .add_prop("out", SoongProp::VecStr(outputs))
+                    .add_prop("tools", SoongProp::VecStr(tool_modules))
+                    .add_prop("tool_files", SoongProp::VecStr(tool_files)),
+            )?,
+        );
+        Ok(modules)
     }
 }
