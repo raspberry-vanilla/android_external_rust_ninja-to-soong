@@ -106,3 +106,19 @@ Each project in the `tests` folder contains the following files:
  Modification to `checkout.sh` & `gen-ninja.sh` trigger the generation of `Ninja` files in the CI, otherwise it uses the cached files from a previous CI run.
 
 If you want more information take a look at the [github action script](.github/workflows/presubmit.yml)
+
+# Raspberry Vanilla
+
+Generate Raspberry Pi specific Mesa soong blueprint makefiles:
+
+```
+<ninja-to-soong> $ cargo run --release -- mesa3d-rpi
+<ninja-to-soong> $ cargo run --release -- mesa3d-rpi --copy-to-aosp
+```
+
+Generate Raspberry Pi specific libcamera soong blueprint makefiles:
+
+```
+<ninja-to-soong> $ cargo run --release -- libcamera-rpi
+<ninja-to-soong> $ cargo run --release -- libcamera-rpi --copy-to-aosp
+```
