@@ -66,7 +66,7 @@ jobs:
           mkdir -p "${android}"
       - name: Get repositories from cache
         id: checkout-repositories
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ env.tmp_dir }}
           key: ${{ env.key }}
