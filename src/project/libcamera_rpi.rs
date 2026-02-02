@@ -173,6 +173,7 @@ cc_defaults {{
         // From generated config.h
         let mut cflags = vec![
             "-DHAVE_BACKTRACE",
+            "-DHAVE_CLOSE_RANGE",
             "-DHAVE_FILE_SEALS",
             "-DHAVE_IPA_PUBKEY",
             "-DHAVE_LOCALE_T",

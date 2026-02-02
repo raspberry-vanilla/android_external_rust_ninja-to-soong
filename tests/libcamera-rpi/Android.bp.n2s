@@ -214,6 +214,7 @@ cc_library_static {
         "src/ipa/rpi/controller/rpi/agc_channel.cpp",
         "src/ipa/rpi/controller/rpi/alsc.cpp",
         "src/ipa/rpi/controller/rpi/awb.cpp",
+        "src/ipa/rpi/controller/rpi/awb_bayes.cpp",
         "src/ipa/rpi/controller/rpi/black_level.cpp",
         "src/ipa/rpi/controller/rpi/cac.cpp",
         "src/ipa/rpi/controller/rpi/ccm.cpp",
@@ -331,6 +332,7 @@ cc_library_static {
         "src/ipa/libipa/lux.cpp",
         "src/ipa/libipa/module.cpp",
         "src/ipa/libipa/pwl.cpp",
+        "src/ipa/libipa/v4l2_params.cpp",
     ],
     cflags: [
         "-DLIBCAMERA_BASE_PRIVATE",
@@ -463,6 +465,7 @@ cc_defaults {
     name: "libcamera-rpi-defaults",
     cflags: [
         "-DHAVE_BACKTRACE",
+        "-DHAVE_CLOSE_RANGE",
         "-DHAVE_FILE_SEALS",
         "-DHAVE_IPA_PUBKEY",
         "-DHAVE_LOCALE_T",
