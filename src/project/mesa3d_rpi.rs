@@ -63,7 +63,10 @@ impl Project for Mesa3DRpi {
         .generate(
             NinjaTargetsToGenMap::from(&[
                 target!("src/egl/libEGL_mesa.so", "libEGL_mesa"),
-                target!("src/mesa/glapi/es1api/libGLESv1_CM_mesa.so", "libGLESv1_CM_mesa"),
+                target!(
+                    "src/mesa/glapi/es1api/libGLESv1_CM_mesa.so",
+                    "libGLESv1_CM_mesa"
+                ),
                 target!("src/mesa/glapi/es2api/libGLESv2_mesa.so", "libGLESv2_mesa"),
                 target!("src/gbm/backends/dri/dri_gbm.so", "dri_gbm"),
                 target!(
@@ -85,6 +88,20 @@ impl Project for Mesa3DRpi {
             ctx,
         )?;
 
+        // Clean subprojects to prevent Soong from parsing blueprints that came with them
+        if !ctx.skip_gen_ninja {
+            execute_cmd!(
+                "git",
+                [
+                    "-C",
+                    &path_to_string(&self.src_path),
+                    "clean",
+                    "-xffd",
+                    "subprojects/*"
+                ]
+            )?;
+        }
+
         let gen_deps = package
             .get_gen_deps()
             .into_iter()
@@ -94,7 +111,7 @@ impl Project for Mesa3DRpi {
         common::clean_gen_deps(&gen_deps, &build_path, ctx)?;
         common::copy_gen_deps(gen_deps, MESON_GENERATED, &build_path, ctx, self)?;
 
-        // HACK: remove one cflag from dri_gbm to have common defaults
+        // HACK: Remove one cflag from dri_gbm to have common defaults
         let prop_cflags =
             SoongNamedProp::get_prop(&package.get_props("dri_gbm", vec!["cflags"])?[0]);
         let mut cflags = match prop_cflags {
