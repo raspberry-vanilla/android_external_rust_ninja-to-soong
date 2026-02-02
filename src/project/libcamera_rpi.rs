@@ -68,6 +68,20 @@ impl Project for LibcameraRpi {
             ctx,
         )?;
 
+        // Clean subprojects to prevent Soong from parsing blueprints that came with them
+        if !ctx.skip_gen_ninja {
+            execute_cmd!(
+                "git",
+                [
+                    "-C",
+                    &path_to_string(&self.src_path),
+                    "clean",
+                    "-xffd",
+                    "subprojects/*"
+                ]
+            )?;
+        }
+
         let gen_deps = package
             .get_gen_deps()
             .into_iter()
@@ -77,7 +91,7 @@ impl Project for LibcameraRpi {
         common::clean_gen_deps(&gen_deps, &build_path, ctx)?;
         common::copy_gen_deps(gen_deps, MESON_GENERATED, &build_path, ctx, self)?;
 
-        // HACK: remove one cflag from metadata.a to have common defaults and avoid
+        // HACK: Remove one cflag from metadata.a to have common defaults and avoid
         // patching libcamera source between NDK (ninja-to-soong) and Android builds
         let prop_cflags = SoongNamedProp::get_prop(
             &package.get_props(
