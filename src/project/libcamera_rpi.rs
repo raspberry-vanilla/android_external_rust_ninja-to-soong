@@ -126,7 +126,7 @@ cc_defaults {{
             .print(ctx)
     }
     fn extend_module(&self, target: &Path, module: SoongModule) -> Result<SoongModule, String> {
-        let is_soc_specific = |module: SoongModule| -> SoongModule {
+        let soc_specific = |module: SoongModule| -> SoongModule {
             for lib in [
                 "libcamera.so",
                 "libcamera-hal.so",
@@ -140,16 +140,14 @@ cc_defaults {{
             }
             module
         };
-        let module = is_soc_specific(module);
+        let module = soc_specific(module);
 
-        let relative_install = |module: SoongModule| -> SoongModule {
-            for lib in ["ipa_rpi_pisp.so", "ipa_rpi_vc4.so"] {
-                if target.ends_with(lib) {
-                    return module.add_prop(
-                        "relative_install_path",
-                        SoongProp::Str(String::from("libcamera/ipa")),
-                    );
-                }
+        let relative_install_path = |module: SoongModule| -> SoongModule {
+            if target.ends_with("ipa_rpi_pisp.so") || target.ends_with("ipa_rpi_vc4.so") {
+                return module.add_prop(
+                    "relative_install_path",
+                    SoongProp::Str(String::from("libcamera/ipa")),
+                );
             }
             if target.ends_with("libcamera-hal.so") {
                 return module
@@ -157,7 +155,7 @@ cc_defaults {{
             }
             module
         };
-        let module = relative_install(module);
+        let module = relative_install_path(module);
 
         let header_libs = |module: SoongModule| -> SoongModule {
             if target.ends_with("libcamera.so") || target.ends_with("ipa_rpi_pisp.so") {
@@ -201,12 +199,12 @@ cc_defaults {{
             static_libs.push("libyaml");
         }
 
-        let mut sources = Vec::new();
+        let mut srcs = Vec::new();
         if target.ends_with("libcamera-hal.so") {
-            sources.push("src/android/jpeg/encoder_libjpeg.cpp");
-            sources.push("src/android/jpeg/exif.cpp");
-            sources.push("src/android/jpeg/post_processor_jpeg.cpp");
-            sources.push("src/android/jpeg/thumbnailer.cpp");
+            srcs.push("src/android/jpeg/encoder_libjpeg.cpp");
+            srcs.push("src/android/jpeg/exif.cpp");
+            srcs.push("src/android/jpeg/post_processor_jpeg.cpp");
+            srcs.push("src/android/jpeg/thumbnailer.cpp");
         }
 
         module
@@ -214,7 +212,7 @@ cc_defaults {{
             .extend_prop("cflags", cflags)?
             .extend_prop("shared_libs", shared_libs)?
             .extend_prop("static_libs", static_libs)?
-            .extend_prop("srcs", sources)
+            .extend_prop("srcs", srcs)
     }
     fn map_lib(&self, library: &Path) -> Option<PathBuf> {
         if !library.starts_with("src") {
