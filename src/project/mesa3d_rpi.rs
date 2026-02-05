@@ -62,13 +62,13 @@ impl Project for Mesa3DRpi {
         )
         .generate(
             NinjaTargetsToGenMap::from(&[
+                target!("src/gbm/backends/dri/dri_gbm.so", "dri_gbm"),
                 target!("src/egl/libEGL_mesa.so", "libEGL_mesa"),
                 target!(
                     "src/mesa/glapi/es1api/libGLESv1_CM_mesa.so",
                     "libGLESv1_CM_mesa"
                 ),
                 target!("src/mesa/glapi/es2api/libGLESv2_mesa.so", "libGLESv2_mesa"),
-                target!("src/gbm/backends/dri/dri_gbm.so", "dri_gbm"),
                 target!(
                     "src/gallium/targets/dri/libgallium_dri.so",
                     "libgallium_dri"
@@ -127,12 +127,12 @@ impl Project for Mesa3DRpi {
         package.add_module(default_module).print(ctx)
     }
     fn extend_module(&self, target: &Path, module: SoongModule) -> Result<SoongModule, String> {
-        let is_soc_specific = |module: SoongModule| -> SoongModule {
+        let soc_specific = |module: SoongModule| -> SoongModule {
             for lib in [
+                "dri_gbm.so",
                 "libEGL_mesa.so",
                 "libGLESv1_CM_mesa.so",
                 "libGLESv2_mesa.so",
-                "dri_gbm.so",
                 "libgallium_dri.so",
                 "libgbm_mesa.so",
                 "libvulkan_broadcom.so",
@@ -143,9 +143,9 @@ impl Project for Mesa3DRpi {
             }
             module
         };
-        let module = is_soc_specific(module);
+        let module = soc_specific(module);
 
-        let relative_install = |module: SoongModule| -> SoongModule {
+        let relative_install_path = |module: SoongModule| -> SoongModule {
             for lib in [
                 "libEGL_mesa.so",
                 "libGLESv1_CM_mesa.so",
@@ -162,7 +162,7 @@ impl Project for Mesa3DRpi {
             }
             module
         };
-        let module = relative_install(module);
+        let module = relative_install_path(module);
 
         let header_libs = |module: SoongModule| -> SoongModule {
             for header_lib in [
@@ -252,7 +252,13 @@ impl Project for Mesa3DRpi {
             cflags.push("-DUSE_IMAPPER4_METADATA_API");
         }
 
-        let mut libs = Vec::new();
+        let mut shared_libs = Vec::new();
+        if target.ends_with("libv3dv-v42.a")
+            || target.ends_with("libv3dv-v71.a")
+            || target.ends_with("libvulkan_lite_runtime.a")
+        {
+            shared_libs.push("libnativewindow");
+        }
         if target.ends_with("libdri.a")
             || target.ends_with("libgallium.a")
             || target.ends_with("libv3dv-v42.a")
@@ -260,32 +266,28 @@ impl Project for Mesa3DRpi {
             || target.ends_with("libvulkan_lite_runtime.a")
             || target.ends_with("libvulkan_wsi.a")
         {
-            libs.push("libsync");
-        }
-        if target.ends_with("libbroadcom_cle.a") || target.ends_with("libmesa_util.a") {
-            libs.push("libz");
-        }
-        if target.starts_with("src/broadcom/vulkan") || target.ends_with("libvulkan_lite_runtime.a")
-        {
-            libs.push("libnativewindow");
+            shared_libs.push("libsync");
         }
         if target.ends_with("libEGL_mesa.so")
             || target.ends_with("libvulkan_broadcom.so")
             || target.ends_with("lib_mesa_u_gralloc.a")
         {
-            libs.push("libui");
+            shared_libs.push("libui");
+        }
+        if target.ends_with("libbroadcom_cle.a") || target.ends_with("libmesa_util.a") {
+            shared_libs.push("libz");
         }
 
-        let mut sources = Vec::new();
+        let mut srcs = Vec::new();
         if target.ends_with("lib_mesa_u_gralloc.a") {
-            sources.push("src/util/u_gralloc/u_gralloc_imapper5_api.cpp");
+            srcs.push("src/util/u_gralloc/u_gralloc_imapper5_api.cpp");
         }
 
         module
             .add_prop("defaults", SoongProp::VecStr(vec![String::from(DEFAULTS)]))
             .extend_prop("cflags", cflags)?
-            .extend_prop("shared_libs", libs)?
-            .extend_prop("srcs", sources)
+            .extend_prop("shared_libs", shared_libs)?
+            .extend_prop("srcs", srcs)
     }
     fn map_lib(&self, library: &Path) -> Option<PathBuf> {
         if library.starts_with("src/android_stub") || !library.starts_with("src") {
