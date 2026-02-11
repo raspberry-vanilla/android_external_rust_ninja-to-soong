@@ -253,6 +253,9 @@ impl Project for Mesa3DRpi {
         }
 
         let mut shared_libs = Vec::new();
+        if target.ends_with("libbroadcom_cle.a") {
+            shared_libs.push("libexpat");
+        }
         if target.ends_with("libv3dv-v42.a")
             || target.ends_with("libv3dv-v71.a")
             || target.ends_with("libvulkan_lite_runtime.a")
@@ -321,6 +324,7 @@ impl Project for Mesa3DRpi {
         !file_name.ends_with(".o")
             && !file_name.ends_with(".def")
             && !file_name.contains("libdrm")
+            && !file_name.contains("libexpat")
             && !target.starts_with("src/android_stub")
     }
 }
