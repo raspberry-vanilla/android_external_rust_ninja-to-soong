@@ -68,6 +68,8 @@ cc_library_shared {
         "-DGALLIUM_KMSRO",
         "-DGALLIUM_V3D",
         "-DGALLIUM_VC4",
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-pthread",
     ],
     ldflags: ["-Wl,--build-id=sha1"],
@@ -148,6 +150,8 @@ cc_library_static {
         "-DDATADIR=\"/usr/local/share\"",
         "-DSYSCONFDIR=\"/system/vendor/etc\"",
         "-DWITH_XMLCONFIG=0",
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-Werror=gnu-empty-initializer",
         "-Werror=pointer-arith",
         "-Werror=vla",
@@ -537,6 +541,8 @@ cc_library_static {
         "src/mesa/vbo/vbo_save_loopback.c",
     ],
     cflags: [
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-Werror=gnu-empty-initializer",
         "-Werror=pointer-arith",
         "-Werror=vla",
@@ -573,6 +579,8 @@ cc_library_static {
     srcs: ["src/mesa/glapi/shared-glapi/core.c"],
     cflags: [
         "-DMAPI_MODE_SHARED_GLAPI",
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-Werror=gnu-empty-initializer",
         "-Werror=pointer-arith",
         "-Werror=vla",
@@ -601,6 +609,8 @@ cc_library_static {
     ],
     cflags: [
         "-DUSE_DRICONF",
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-pthread",
     ],
     local_include_dirs: [
@@ -621,6 +631,8 @@ cc_library_static {
     srcs: ["src/gallium/winsys/vc4/drm/vc4_drm_winsys.c"],
     cflags: [
         "-DGALLIUM_KMSRO",
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-pthread",
     ],
     local_include_dirs: [
@@ -642,7 +654,11 @@ cc_library_static {
 cc_library_static {
     name: "mesa3d-rpi_src_gallium_winsys_v3d_drm_libv3dwinsys_a",
     srcs: ["src/gallium/winsys/v3d/drm/v3d_drm_winsys.c"],
-    cflags: ["-pthread"],
+    cflags: [
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
+        "-pthread",
+    ],
     local_include_dirs: [
         "include",
         "meson_generated/src",
@@ -661,7 +677,11 @@ cc_library_static {
 cc_library_static {
     name: "mesa3d-rpi_src_gallium_winsys_sw_wrapper_libwsw_a",
     srcs: ["src/gallium/winsys/sw/wrapper/wrapper_sw_winsys.c"],
-    cflags: ["-pthread"],
+    cflags: [
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
+        "-pthread",
+    ],
     local_include_dirs: [
         "include",
         "meson_generated/src",
@@ -679,7 +699,11 @@ cc_library_static {
 cc_library_static {
     name: "mesa3d-rpi_src_gallium_winsys_sw_null_libws_null_a",
     srcs: ["src/gallium/winsys/sw/null/null_sw_winsys.c"],
-    cflags: ["-pthread"],
+    cflags: [
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
+        "-pthread",
+    ],
     local_include_dirs: [
         "include",
         "meson_generated/src",
@@ -697,7 +721,11 @@ cc_library_static {
 cc_library_static {
     name: "mesa3d-rpi_src_gallium_winsys_sw_kms-dri_libswkmsdri_a",
     srcs: ["src/gallium/winsys/sw/kms-dri/kms_dri_sw_winsys.c"],
-    cflags: ["-pthread"],
+    cflags: [
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
+        "-pthread",
+    ],
     local_include_dirs: [
         "include",
         "meson_generated/src",
@@ -716,7 +744,11 @@ cc_library_static {
 cc_library_static {
     name: "mesa3d-rpi_src_gallium_winsys_sw_dri_libswdri_a",
     srcs: ["src/gallium/winsys/sw/dri/dri_sw_winsys.c"],
-    cflags: ["-pthread"],
+    cflags: [
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
+        "-pthread",
+    ],
     local_include_dirs: [
         "include",
         "meson_generated/src",
@@ -737,6 +769,8 @@ cc_library_static {
     cflags: [
         "-DGALLIUM_V3D",
         "-DGALLIUM_VC4",
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-pthread",
     ],
     local_include_dirs: [
@@ -769,7 +803,11 @@ cc_library_static {
         "src/gallium/frontends/dri/drisw.c",
         "src/gallium/frontends/dri/kopper_stubs.c",
     ],
-    cflags: ["-pthread"],
+    cflags: [
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
+        "-pthread",
+    ],
     shared_libs: ["libsync"],
     local_include_dirs: [
         "include",
@@ -841,7 +879,11 @@ cc_library_static {
         "src/gallium/drivers/vc4/vc4_tiling_lt.c",
         "src/gallium/drivers/vc4/vc4_uniforms.c",
     ],
-    cflags: ["-pthread"],
+    cflags: [
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
+        "-pthread",
+    ],
     local_include_dirs: [
         "include",
         "meson_generated/src",
@@ -888,6 +930,8 @@ cc_library_static {
     cflags: [
         "-DUSE_V3D_SIMULATOR=0",
         "-DV3D_BUILD_NEON",
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-pthread",
     ],
     local_include_dirs: [
@@ -929,6 +973,8 @@ cc_library_static {
         "-DUSE_V3D_SIMULATOR=0",
         "-DV3D_BUILD_NEON",
         "-DV3D_VERSION=71",
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-pthread",
     ],
     local_include_dirs: [
@@ -970,6 +1016,8 @@ cc_library_static {
         "-DUSE_V3D_SIMULATOR=0",
         "-DV3D_BUILD_NEON",
         "-DV3D_VERSION=42",
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-pthread",
     ],
     local_include_dirs: [
@@ -1006,6 +1054,8 @@ cc_library_static {
     cflags: [
         "-DGALLIUM_V3D",
         "-DGALLIUM_VC4",
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-pthread",
     ],
     local_include_dirs: [
@@ -1041,6 +1091,8 @@ cc_library_static {
         "src/gallium/auxiliary/vl/vl_video_buffer.c",
     ],
     cflags: [
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-Werror=gnu-empty-initializer",
         "-Werror=pointer-arith",
         "-Werror=vla",
@@ -1218,6 +1270,8 @@ cc_library_static {
         "src/gallium/auxiliary/util/u_vertex_state_cache.c",
     ],
     cflags: [
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-Werror=gnu-empty-initializer",
         "-Werror=pointer-arith",
         "-Werror=vla",
@@ -1264,6 +1318,8 @@ cc_library_static {
         "src/compiler/spirv/vtn_variables.c",
     ],
     cflags: [
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-Werror=gnu-empty-initializer",
         "-Werror=pointer-arith",
         "-Werror=vla",
@@ -1523,6 +1579,8 @@ cc_library_static {
         "src/compiler/nir/nir_worklist.c",
     ],
     cflags: [
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-Werror=gnu-empty-initializer",
         "-Werror=pointer-arith",
         "-Werror=vla",
@@ -1645,6 +1703,8 @@ cc_library_static {
         "src/compiler/glsl/string_to_uint_map.cpp",
     ],
     cflags: [
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-Werror=gnu-empty-initializer",
         "-Werror=pointer-arith",
         "-Werror=vla",
@@ -1682,6 +1742,8 @@ cc_library_static {
         "src/compiler/glsl/glcpp/pp.c",
     ],
     cflags: [
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-Werror=gnu-empty-initializer",
         "-Werror=pointer-arith",
         "-Werror=vla",
@@ -1729,6 +1791,8 @@ cc_library_static {
     cflags: [
         "-DUSE_V3D_SIMULATOR=0",
         "-DV3D_VERSION=71",
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-pthread",
     ],
     local_include_dirs: [
@@ -1753,6 +1817,8 @@ cc_library_static {
     cflags: [
         "-DUSE_V3D_SIMULATOR=0",
         "-DV3D_VERSION=42",
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-pthread",
     ],
     local_include_dirs: [
@@ -1775,6 +1841,8 @@ cc_library_static {
     name: "mesa3d-rpi_src_broadcom_perfcntrs_libbroadcom_perfcntrs_a",
     srcs: ["src/broadcom/perfcntrs/v3d_perfcntrs.c"],
     cflags: [
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-Wno-override-init",
         "-pthread",
     ],
@@ -1799,6 +1867,8 @@ cc_library_static {
     srcs: ["src/broadcom/common/v3d_tiling.c"],
     cflags: [
         "-DV3D_BUILD_NEON",
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-pthread",
     ],
     local_include_dirs: [
@@ -1878,6 +1948,8 @@ cc_library_static {
     ],
     cflags: [
         "-DV3D_VERSION=42",
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-Wno-override-init",
         "-pthread",
     ],
@@ -2000,7 +2072,11 @@ cc_library_shared {
 cc_library_shared {
     name: "dri_gbm",
     srcs: ["src/gbm/backends/dri/gbm_dri.c"],
-    cflags: ["-pthread"],
+    cflags: [
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
+        "-pthread",
+    ],
     shared_libs: [
         "libcutils",
         "libdrm",
@@ -2065,6 +2141,8 @@ cc_library_shared {
     cflags: [
         "-DBUILT_WITH_ASAN=0",
         "-DHAVE_MINCORE",
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-D_EGL_NATIVE_PLATFORM=_EGL_PLATFORM_ANDROID",
         "-pthread",
     ],
@@ -2160,6 +2238,8 @@ cc_library_shared {
     cflags: [
         "-DUSE_V3D_SIMULATOR=0",
         "-DVK_USE_PLATFORM_ANDROID_KHR",
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-pthread",
     ],
     ldflags: [
@@ -2243,6 +2323,8 @@ cc_library_static {
     ],
     cflags: [
         "-DVK_USE_PLATFORM_ANDROID_KHR",
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-pthread",
     ],
     shared_libs: ["libsync"],
@@ -2277,6 +2359,8 @@ cc_library_static {
     ],
     cflags: [
         "-DVK_USE_PLATFORM_ANDROID_KHR",
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-Werror=gnu-empty-initializer",
         "-Werror=pointer-arith",
         "-Werror=vla",
@@ -2317,6 +2401,8 @@ cc_library_static {
     ],
     cflags: [
         "-DVK_USE_PLATFORM_ANDROID_KHR",
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-Werror=gnu-empty-initializer",
         "-Werror=pointer-arith",
         "-Werror=vla",
@@ -2399,6 +2485,8 @@ cc_library_static {
     ],
     cflags: [
         "-DVK_USE_PLATFORM_ANDROID_KHR",
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-Werror=gnu-empty-initializer",
         "-Werror=pointer-arith",
         "-Werror=vla",
@@ -2439,6 +2527,8 @@ cc_library_static {
     cflags: [
         "-DVK_LITE_RUNTIME_INSTANCE=0",
         "-DVK_USE_PLATFORM_ANDROID_KHR",
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-Werror=gnu-empty-initializer",
         "-Werror=pointer-arith",
         "-Werror=vla",
@@ -2550,6 +2640,8 @@ cc_library_static {
         "-DV3D_VERSION=71",
         "-DVK_LITE_RUNTIME_INSTANCE=0",
         "-DVK_USE_PLATFORM_ANDROID_KHR",
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-Werror=gnu-empty-initializer",
         "-Werror=pointer-arith",
         "-Werror=vla",
@@ -2678,6 +2770,8 @@ cc_library_static {
         "-DV3D_VERSION=42",
         "-DVK_LITE_RUNTIME_INSTANCE=0",
         "-DVK_USE_PLATFORM_ANDROID_KHR",
+        "-DXXH_FORCE_ALIGN_CHECK=0",
+        "-DXXH_FORCE_MEMORY_ACCESS=0",
         "-Werror=gnu-empty-initializer",
         "-Werror=pointer-arith",
         "-Werror=vla",
@@ -2807,7 +2901,7 @@ cc_defaults {
         "-DMESA_SYSTEM_HAS_KMS_DRM=1",
         "-DNDEBUG",
         "-DPACKAGE_BUGREPORT=\"https://gitlab.freedesktop.org/mesa/mesa/-/issues\"",
-        "-DPACKAGE_VERSION=\"26.0.0\"",
+        "-DPACKAGE_VERSION=\"26.0.1\"",
         "-DTHREAD_SANITIZER=0",
         "-DUSE_GCC_ATOMIC_BUILTINS",
         "-DUSE_LIBGLVND=0",

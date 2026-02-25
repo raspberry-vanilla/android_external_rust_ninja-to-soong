@@ -111,18 +111,22 @@ impl Project for Mesa3DRpi {
         common::clean_gen_deps(&gen_deps, &build_path, ctx)?;
         common::copy_gen_deps(gen_deps, MESON_GENERATED, &build_path, ctx, self)?;
 
-        // HACK: Remove one cflag from dri_gbm to have common defaults
-        let prop_cflags =
-            SoongNamedProp::get_prop(&package.get_props("dri_gbm", vec!["cflags"])?[0]);
-        let mut cflags = match prop_cflags {
-            SoongProp::VecStr(t) => t,
-            _ => Vec::new(),
-        };
-        cflags.retain(|a| a != "-pthread");
+        // Remove some cflags from dri_gbm to have common defaults
+        let cflags = package.get_props("dri_gbm", vec!["cflags"])?[0]
+            .clone()
+            .filter_default(
+                SoongProp::VecStr(vec![
+                    String::from("-DXXH_FORCE_ALIGN_CHECK=0"),
+                    String::from("-DXXH_FORCE_MEMORY_ACCESS=0"),
+                    String::from("-pthread"),
+                ]),
+                "cflags",
+            )?
+            .get_prop();
 
         let default_module = SoongModule::new("cc_defaults")
             .add_prop("name", SoongProp::Str(String::from(DEFAULTS)))
-            .add_prop("cflags", SoongProp::VecStr(cflags));
+            .add_prop("cflags", cflags);
 
         package.add_module(default_module).print(ctx)
     }
