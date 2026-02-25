@@ -53,8 +53,8 @@ impl Project for LibcameraRpi {
         )
         .generate(
             NinjaTargetsToGenMap::from(&[
-                target!("src/libcamera/libcamera.so", "libcamera"),
                 target!("src/android/libcamera-hal.so", "camera.libcamera"),
+                target!("src/libcamera/libcamera.so", "libcamera"),
                 target!("src/libcamera/base/libcamera-base.so", "libcamera-base"),
                 target!("src/ipa/rpi/pisp/ipa_rpi_pisp.so", "ipa_rpi_pisp"),
                 target!("src/ipa/rpi/vc4/ipa_rpi_vc4.so", "ipa_rpi_vc4"),
@@ -91,23 +91,22 @@ impl Project for LibcameraRpi {
         common::clean_gen_deps(&gen_deps, &build_path, ctx)?;
         common::copy_gen_deps(gen_deps, MESON_GENERATED, &build_path, ctx, self)?;
 
-        // HACK: Remove one cflag from metadata.a to have common defaults and avoid
-        // patching libcamera source between NDK (ninja-to-soong) and Android builds
-        let prop_cflags = SoongNamedProp::get_prop(
-            &package.get_props(
-                "libcamera-rpi_src_android_libcamera_metadata_a",
-                vec!["cflags"],
-            )?[0],
-        );
-        let mut cflags = match prop_cflags {
-            SoongProp::VecStr(t) => t,
-            _ => Vec::new(),
-        };
-        cflags.retain(|a| a != "-Wno-shadow");
+        // Remove one cflag from metadata.a to have common defaults and avoid patching libcamera
+        // source between NDK (ninja-to-soong) and Android builds
+        let cflags = package.get_props(
+            "libcamera-rpi_src_android_libcamera_metadata_a",
+            vec!["cflags"],
+        )?[0]
+            .clone()
+            .filter_default(
+                SoongProp::VecStr(vec![String::from("-Wno-shadow")]),
+                "cflags",
+            )?
+            .get_prop();
 
         let default_module = SoongModule::new("cc_defaults")
             .add_prop("name", SoongProp::Str(String::from(DEFAULTS)))
-            .add_prop("cflags", SoongProp::VecStr(cflags))
+            .add_prop("cflags", cflags)
             .add_prop(
                 "defaults",
                 SoongProp::VecStr(vec![String::from(RAW_DEFAULTS)]),
