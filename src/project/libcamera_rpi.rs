@@ -82,11 +82,12 @@ impl Project for LibcameraRpi {
             )?;
         }
 
-        let gen_deps = package
+        let mut gen_deps: Vec<PathBuf> = package
             .get_gen_deps()
             .into_iter()
             .filter(|include| !include.starts_with("subprojects"))
             .collect();
+        gen_deps.extend([PathBuf::from("config.h")]);
         package.filter_local_include_dirs(MESON_GENERATED, &gen_deps)?;
         common::clean_gen_deps(&gen_deps, &build_path, ctx)?;
         common::copy_gen_deps(gen_deps, MESON_GENERATED, &build_path, ctx, self)?;
@@ -118,6 +119,7 @@ impl Project for LibcameraRpi {
                 r#"
 cc_defaults {{
     name: "{RAW_DEFAULTS}",
+    cflags: ["-include meson_generated/config.h"],
     rtti: true,
 }}
 "#
@@ -167,21 +169,7 @@ cc_defaults {{
         };
         let module = header_libs(module);
 
-        // From generated config.h
-        let mut cflags = vec![
-            "-DHAVE_BACKTRACE",
-            "-DHAVE_CLOSE_RANGE",
-            "-DHAVE_FILE_SEALS",
-            "-DHAVE_IPA_PUBKEY",
-            "-DHAVE_LOCALE_T",
-            "-DHAVE_MEMFD_CREATE",
-            "-DHAVE_POSIX_IOCTL",
-            "-DIPA_CONFIG_DIR=\\\"/vendor/etc/libcamera/ipa:/usr/local/share/libcamera/ipa\\\"",
-            "-DIPA_MODULE_DIR=\\\"/usr/local/lib/libcamera/ipa\\\"",
-            "-DIPA_PROXY_DIR=\\\"/usr/local/libexec/libcamera\\\"",
-            "-DLIBCAMERA_DATA_DIR=\\\"/usr/local/share/libcamera\\\"",
-            "-DLIBCAMERA_SYSCONF_DIR=\\\"/vendor/etc/libcamera\\\"",
-        ];
+        let mut cflags = Vec::new();
         if target.ends_with("libcamera-hal.so") {
             cflags.push("-DHAVE_LIBJPEG");
         }

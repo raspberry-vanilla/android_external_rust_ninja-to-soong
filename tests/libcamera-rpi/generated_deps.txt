@@ -19,4 +19,5 @@
     "src/libcamera/proxy/raspberrypi_ipa_proxy.cpp",
     "src/libcamera/version.cpp",
     "utils/codegen/ipc/libcamera_templates.zip",
+    "config.h",
 ]
