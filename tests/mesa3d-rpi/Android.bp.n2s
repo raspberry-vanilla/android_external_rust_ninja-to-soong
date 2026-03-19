@@ -2819,7 +2819,6 @@ cc_defaults {
     name: "mesa3d-rpi-defaults",
     cflags: [
         "-DAMD_LLVM_AVAILABLE=0",
-        "-DANDROID_API_LEVEL=35",
         "-DANDROID_STRICT",
         "-DDRAW_LLVM_AVAILABLE=0",
         "-DENABLE_SHADER_CACHE",
@@ -2961,4 +2960,14 @@ cc_defaults {
         "-fvisibility=hidden",
         "-std=c11",
     ],
+    defaults: ["mesa3d-rpi-raw-defaults"],
+}
+
+cc_defaults {
+    name: "mesa3d-rpi-raw-defaults",
+    product_variables: {
+        platform_sdk_version: {
+            cflags: ["-DANDROID_API_LEVEL=%d"],
+        },
+    },
 }

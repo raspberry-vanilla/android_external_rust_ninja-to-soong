@@ -10,6 +10,7 @@ pub struct Mesa3DRpi {
 }
 
 const DEFAULTS: &str = "mesa3d-rpi-defaults";
+const RAW_DEFAULTS: &str = "mesa3d-rpi-raw-defaults";
 
 impl Mesa3DRpi {
     fn get_subprojects_path(&self) -> String {
@@ -137,9 +138,27 @@ impl Project for Mesa3DRpi {
 
         let default_module = SoongModule::new("cc_defaults")
             .add_prop("name", SoongProp::Str(String::from(DEFAULTS)))
-            .add_prop("cflags", cflags);
+            .add_prop("cflags", cflags)
+            .add_prop(
+                "defaults",
+                SoongProp::VecStr(vec![String::from(RAW_DEFAULTS)]),
+            );
 
-        package.add_module(default_module).print(ctx)
+        package
+            .add_module(default_module)
+            .add_raw_suffix(&format!(
+                r#"
+cc_defaults {{
+    name: "{RAW_DEFAULTS}",
+    product_variables: {{
+        platform_sdk_version: {{
+            cflags: ["-DANDROID_API_LEVEL=%d"],
+        }},
+    }},
+}}
+"#
+            ))
+            .print(ctx)
     }
     fn extend_module(&self, target: &Path, module: SoongModule) -> Result<SoongModule, String> {
         let soc_specific = |module: SoongModule| -> SoongModule {
@@ -317,8 +336,8 @@ impl Project for Mesa3DRpi {
     fn filter_cflag(&self, cflag: &str) -> bool {
         !cflag.starts_with("'") && cflag != "-fno-rtti"
     }
-    fn filter_define(&self, _define: &str) -> bool {
-        true
+    fn filter_define(&self, define: &str) -> bool {
+        !define.starts_with("ANDROID_API_LEVEL")
     }
     fn filter_gen_header(&self, _header: &Path) -> bool {
         false
