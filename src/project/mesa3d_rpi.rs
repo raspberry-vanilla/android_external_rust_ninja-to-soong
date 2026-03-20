@@ -11,6 +11,12 @@ pub struct Mesa3DRpi {
 
 const DEFAULTS: &str = "mesa3d-rpi-defaults";
 
+impl Mesa3DRpi {
+    fn get_subprojects_path(&self) -> String {
+        path_to_string(&self.src_path.join("subprojects"))
+    }
+}
+
 impl Project for Mesa3DRpi {
     fn get_name(&self) -> &'static str {
         "mesa3d-rpi"
@@ -41,7 +47,6 @@ impl Project for Mesa3DRpi {
                 ]
             )?;
         }
-        common::ninja_build(&build_path, &Vec::new(), ctx)?;
 
         const MESON_GENERATED: &str = "meson_generated";
         let mut package = SoongPackage::new(
@@ -88,6 +93,17 @@ impl Project for Mesa3DRpi {
             ctx,
         )?;
 
+        let gen_deps = package
+            .get_gen_deps()
+            .into_iter()
+            .filter(|include| !include.starts_with("subprojects"))
+            .collect();
+
+        // To save time it would suffice to only build the targets for generated dependencies
+        // but build the whole project with NDK for sanity
+        //common::ninja_build(&build_path, &gen_deps, ctx)?;
+        common::ninja_build(&build_path, &Vec::new(), ctx)?;
+
         // Clean subprojects to prevent Soong from parsing blueprints that came with them
         if !ctx.skip_gen_ninja {
             execute_cmd!(
@@ -102,11 +118,6 @@ impl Project for Mesa3DRpi {
             )?;
         }
 
-        let gen_deps = package
-            .get_gen_deps()
-            .into_iter()
-            .filter(|include| !include.starts_with("subprojects"))
-            .collect();
         package.filter_local_include_dirs(MESON_GENERATED, &gen_deps)?;
         common::clean_gen_deps(&gen_deps, &build_path, ctx)?;
         common::copy_gen_deps(gen_deps, MESON_GENERATED, &build_path, ctx, self)?;
@@ -309,19 +320,15 @@ impl Project for Mesa3DRpi {
     fn filter_define(&self, _define: &str) -> bool {
         true
     }
-    fn filter_include(&self, include: &Path) -> bool {
-        let inc = path_to_string(include);
-        let subprojects = self.src_path.join("subprojects");
-        !include.ends_with("android_stub") && !inc.contains(&path_to_string(&subprojects))
-    }
-    fn filter_link_flag(&self, flag: &str) -> bool {
-        flag == "-Wl,--build-id=sha1" || flag == "-Wl,-Bsymbolic"
-    }
     fn filter_gen_header(&self, _header: &Path) -> bool {
         false
     }
-    fn filter_lib(&self, _lib: &str) -> bool {
-        true
+    fn filter_include(&self, include: &Path) -> bool {
+        !include.ends_with("android_stub")
+            && !path_to_string(include).contains(&self.get_subprojects_path())
+    }
+    fn filter_link_flag(&self, flag: &str) -> bool {
+        flag == "-Wl,--build-id=sha1" || flag == "-Wl,-Bsymbolic"
     }
     fn filter_target(&self, target: &Path) -> bool {
         let file_name = file_name(target);

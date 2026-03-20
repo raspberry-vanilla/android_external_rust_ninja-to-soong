@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright 2025 ninja-to-soong authors
+# Copyright 2025 KonstaKANG
+# SPDX-License-Identifier: Apache-2.0
 
 set -xe
 
