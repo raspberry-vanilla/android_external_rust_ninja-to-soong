@@ -12,6 +12,12 @@ pub struct LibcameraRpi {
 const DEFAULTS: &str = "libcamera-rpi-defaults";
 const RAW_DEFAULTS: &str = "libcamera-rpi-raw-defaults";
 
+impl LibcameraRpi {
+    fn get_subprojects_path(&self) -> String {
+        path_to_string(&self.src_path.join("subprojects"))
+    }
+}
+
 impl Project for LibcameraRpi {
     fn get_name(&self) -> &'static str {
         "libcamera-rpi"
@@ -42,7 +48,6 @@ impl Project for LibcameraRpi {
                 ]
             )?;
         }
-        common::ninja_build(&build_path, &Vec::new(), ctx)?;
 
         const MESON_GENERATED: &str = "meson_generated";
         let mut package = SoongPackage::new(
@@ -68,6 +73,17 @@ impl Project for LibcameraRpi {
             ctx,
         )?;
 
+        let mut gen_deps: Vec<PathBuf> = package
+            .get_gen_deps()
+            .into_iter()
+            .filter(|include| !include.starts_with("subprojects"))
+            .collect();
+
+        // To save time it would suffice to only build the targets for generated dependencies
+        // but build the whole project with NDK for sanity
+        //common::ninja_build(&build_path, &gen_deps, ctx)?;
+        common::ninja_build(&build_path, &Vec::new(), ctx)?;
+
         // Clean subprojects to prevent Soong from parsing blueprints that came with them
         if !ctx.skip_gen_ninja {
             execute_cmd!(
@@ -82,18 +98,12 @@ impl Project for LibcameraRpi {
             )?;
         }
 
-        let mut gen_deps: Vec<PathBuf> = package
-            .get_gen_deps()
-            .into_iter()
-            .filter(|include| !include.starts_with("subprojects"))
-            .collect();
         gen_deps.extend([PathBuf::from("config.h")]);
         package.filter_local_include_dirs(MESON_GENERATED, &gen_deps)?;
         common::clean_gen_deps(&gen_deps, &build_path, ctx)?;
         common::copy_gen_deps(gen_deps, MESON_GENERATED, &build_path, ctx, self)?;
 
-        // Remove one cflag from metadata.a to have common defaults and avoid patching libcamera
-        // source between NDK (ninja-to-soong) and Android builds
+        // Remove one cflag from metadata.a to have common defaults
         let cflags = package.get_props(
             "libcamera-rpi_src_android_libcamera_metadata_a",
             vec!["cflags"],
@@ -214,19 +224,17 @@ cc_defaults {{
     fn filter_define(&self, define: &str) -> bool {
         define != "YAML_DECLARE_STATIC"
     }
-    fn filter_include(&self, include: &Path) -> bool {
-        let inc = path_to_string(include);
-        let subprojects = self.src_path.join("subprojects");
-        !inc.contains(&path_to_string(&subprojects))
-    }
-    fn filter_link_flag(&self, _flag: &str) -> bool {
-        false
-    }
     fn filter_gen_header(&self, _header: &Path) -> bool {
         false
     }
+    fn filter_include(&self, include: &Path) -> bool {
+        !path_to_string(include).contains(&self.get_subprojects_path())
+    }
     fn filter_lib(&self, lib: &str) -> bool {
         !lib.contains("libatomic") && !lib.contains("libyaml") && !lib.contains("libyuv")
+    }
+    fn filter_link_flag(&self, _flag: &str) -> bool {
+        false
     }
     fn filter_target(&self, target: &Path) -> bool {
         let file_name = file_name(target);
