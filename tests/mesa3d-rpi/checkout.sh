@@ -9,7 +9,7 @@ set -xe
 DEST="$1"
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 
-bash "${SCRIPT_DIR}/../../../utils/checkout.sh" https://github.com/raspberry-vanilla/android_external_mesa3d-rpi 77aee025cbad66985a0c2e7e970d96a1311b37b9 "${DEST}/external/mesa3d-rpi"
+bash "${SCRIPT_DIR}/../../../utils/checkout.sh" https://github.com/raspberry-vanilla/android_external_mesa3d-rpi 8135825111e86d1b95c019c7026ab5cc01185839 "${DEST}/external/mesa3d-rpi"
 
 sudo apt install \
     meson-1.5 \
