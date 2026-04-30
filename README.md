@@ -42,7 +42,7 @@
 ## Environment variables
 
 * `N2S_ANGLE_PATH`: Path to angle sources (default: `<aosp-path>/external/angle`)
-* `N2S_NDK`: Android NDK (default: `android-ndk-r27c`)
+* `N2S_NDK`: Android NDK (default: `android-ndk-r30-beta1`)
 * `N2S_NDK_PATH`: Path to Android NDK (default: temporary directory)
 * `N2S_TMP_PATH`: Path used by `ninja-to-soong` to store its temporary directories (default: `std::env::temp_dir()`)
 
