@@ -13,7 +13,7 @@ NDK_PATH="$3"
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 MESON_LOCAL_PATH="${HOME}/.local/share/meson/cross"
 AOSP_AARCH64="aosp-aarch64"
-ANDROID_PLATFORM="35"
+ANDROID_PLATFORM="36"
 mkdir -p "${MESON_LOCAL_PATH}"
 ANDROID_PLATFORM="${ANDROID_PLATFORM}" NDK_PATH="${NDK_PATH}" \
 envsubst < "${SCRIPT_DIR}/${AOSP_AARCH64}.template" > "${MESON_LOCAL_PATH}/${AOSP_AARCH64}"

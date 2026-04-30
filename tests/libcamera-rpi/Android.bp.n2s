@@ -94,6 +94,7 @@ cc_library_shared {
         "src/libcamera/v4l2_request.cpp",
         "src/libcamera/v4l2_subdevice.cpp",
         "src/libcamera/v4l2_videodevice.cpp",
+        "src/libcamera/value_node.cpp",
         "src/libcamera/vector.cpp",
         "src/libcamera/yaml_parser.cpp",
     ],
@@ -103,7 +104,7 @@ cc_library_shared {
         "-Wextra-semi",
         "-Wnon-virtual-dtor",
         "-Wthread-safety",
-        "-std=c++17",
+        "-std=c++20",
     ],
     shared_libs: [
         "libcamera-base",
@@ -156,7 +157,7 @@ cc_library_shared {
         "-Wnon-virtual-dtor",
         "-Wthread-safety",
         "-pthread",
-        "-std=c++17",
+        "-std=c++20",
     ],
     local_include_dirs: [
         "include",
@@ -176,7 +177,7 @@ cc_library_shared {
         "-Wextra-semi",
         "-Wnon-virtual-dtor",
         "-Wthread-safety",
-        "-std=c++17",
+        "-std=c++20",
     ],
     shared_libs: [
         "libcamera",
@@ -237,7 +238,7 @@ cc_library_static {
         "-Wextra-semi",
         "-Wnon-virtual-dtor",
         "-Wthread-safety",
-        "-std=c++17",
+        "-std=c++20",
     ],
     local_include_dirs: [
         "include",
@@ -259,7 +260,7 @@ cc_library_static {
         "-Wextra-semi",
         "-Wnon-virtual-dtor",
         "-Wthread-safety",
-        "-std=c++17",
+        "-std=c++20",
     ],
     local_include_dirs: [
         "include",
@@ -300,7 +301,7 @@ cc_library_static {
         "-Wextra-semi",
         "-Wnon-virtual-dtor",
         "-Wthread-safety",
-        "-std=c++17",
+        "-std=c++20",
     ],
     local_include_dirs: [
         "include",
@@ -332,6 +333,7 @@ cc_library_static {
         "src/ipa/libipa/lux.cpp",
         "src/ipa/libipa/module.cpp",
         "src/ipa/libipa/pwl.cpp",
+        "src/ipa/libipa/quantized.cpp",
         "src/ipa/libipa/v4l2_params.cpp",
     ],
     cflags: [
@@ -340,7 +342,7 @@ cc_library_static {
         "-Wextra-semi",
         "-Wnon-virtual-dtor",
         "-Wthread-safety",
-        "-std=c++17",
+        "-std=c++20",
     ],
     local_include_dirs: [
         "include",
@@ -362,7 +364,7 @@ cc_library_shared {
         "-Wno-address-of-packed-member",
         "-Wnon-virtual-dtor",
         "-Wthread-safety",
-        "-std=c++17",
+        "-std=c++20",
     ],
     shared_libs: [
         "libcamera",
@@ -419,7 +421,7 @@ cc_library_shared {
         "-Wextra-semi",
         "-Wnon-virtual-dtor",
         "-Wthread-safety",
-        "-std=c++17",
+        "-std=c++20",
     ],
     shared_libs: [
         "libcamera",
@@ -465,13 +467,14 @@ cc_defaults {
     name: "libcamera-rpi-defaults",
     cflags: [
         "-D_FILE_OFFSET_BITS=64",
-        "-D_FORTIFY_SOURCE=3",
+        "-D_FORTIFY_SOURCE=2",
         "-O3",
         "-Wall",
         "-Wextra",
         "-Winvalid-pch",
         "-Wmissing-declarations",
         "-Wno-c99-designator",
+        "-Wno-macro-redefined",
         "-Wshadow",
         "-fPIC",
         "-fdiagnostics-color=always",

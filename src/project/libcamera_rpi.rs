@@ -100,7 +100,6 @@ impl Project for LibcameraRpi {
 
         gen_deps.extend([PathBuf::from("config.h")]);
         package.filter_local_include_dirs(MESON_GENERATED, &gen_deps)?;
-        common::clean_gen_deps(&gen_deps, &build_path, ctx)?;
         common::copy_gen_deps(gen_deps, MESON_GENERATED, &build_path, ctx, self)?;
 
         // Remove one cflag from metadata.a to have common defaults
@@ -179,7 +178,7 @@ cc_defaults {{
         };
         let module = header_libs(module);
 
-        let mut cflags = Vec::new();
+        let mut cflags = vec!["-Wno-macro-redefined"];
         if target.ends_with("libcamera-hal.so") {
             cflags.push("-DHAVE_LIBJPEG");
         }
