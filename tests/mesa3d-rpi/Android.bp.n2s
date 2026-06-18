@@ -1118,6 +1118,7 @@ cc_library_static {
 cc_library_static {
     name: "mesa3d-rpi_src_gallium_auxiliary_libgallium_a",
     srcs: [
+        "meson_generated/src/gallium/auxiliary/draw_nir_lower_opcodes.c",
         "meson_generated/src/gallium/auxiliary/tr_util.c",
         "meson_generated/src/gallium/auxiliary/u_indices_gen.c",
         "meson_generated/src/gallium/auxiliary/u_tracepoints.c",
@@ -2911,7 +2912,7 @@ cc_defaults {
         "-DMESA_SYSTEM_HAS_KMS_DRM=1",
         "-DNDEBUG",
         "-DPACKAGE_BUGREPORT=\"https://gitlab.freedesktop.org/mesa/mesa/-/issues\"",
-        "-DPACKAGE_VERSION=\"26.1.2\"",
+        "-DPACKAGE_VERSION=\"26.1.3\"",
         "-DTHREAD_SANITIZER=0",
         "-DUSE_GCC_ATOMIC_BUILTINS",
         "-DUSE_LIBGLVND=0",
