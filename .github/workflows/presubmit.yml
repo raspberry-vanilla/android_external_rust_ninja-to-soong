@@ -10,7 +10,7 @@ jobs:
     name: Code formatting check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Check format
@@ -28,7 +28,7 @@ jobs:
       matrix:
         project: [OpenCL, fwupd, media-driver, mesa, angle, unittests, external-project]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Ninja
@@ -71,7 +71,7 @@ jobs:
           echo "tmp_dir=$(realpath ${{ github.workspace }}/../tmp)" >> $GITHUB_ENV
       - name: Get repositories from cache
         id: checkout-repositories
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ env.tmp_dir }}
           key: ${{ env.key }}
