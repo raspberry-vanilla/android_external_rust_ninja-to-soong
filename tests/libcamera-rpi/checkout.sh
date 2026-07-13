@@ -9,7 +9,7 @@ set -xe
 DEST="$1"
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 
-bash "${SCRIPT_DIR}/../../../checkout.sh" https://github.com/raspberry-vanilla/android_external_libcamera 8bf59a6bbddfbcf5036749b15382e917706a72f4 "${DEST}/external/libcamera"
+bash "${SCRIPT_DIR}/../../../checkout.sh" https://github.com/raspberry-vanilla/android_external_libcamera 70c59a06934f471e0e5ae441120aee6d74aff471 "${DEST}/external/libcamera"
 
 sudo apt install \
     meson-1.5 \
